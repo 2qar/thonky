@@ -1,0 +1,8 @@
+from discord import Embed
+from sheetbot import 
+
+class Formatter():
+	def get_player_on_day(player, day):
+		embed = Embed()
+		embed.title = "{0} on {1}".format(player.name, day)
+		

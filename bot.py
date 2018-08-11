@@ -1,0 +1,157 @@
+import discord
+import asyncio
+from sheetbot import Player
+from sheetbot import SheetScraper
+from sheetbot import TimeOffsets
+from formatter import Formatter
+from timezonehelper import TimezoneHelper
+import calendar
+import datetime
+from pytz import timezone
+import pytz
+
+main_token = 'NDc3NjI3MzczMDMwNzM1ODcy.DlDQeg.MRWwrnDCSmfOxsY3mq6TsWkR5sI'
+test_token = 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
+
+class Bot():
+	client = discord.Client()
+	#scraper = SheetScraper()
+	#players = scraper.get_players()
+	#week_schedule = scraper.get_week_schedule()
+	scanning = False
+	
+	@client.event
+	async def on_ready():
+		print("Ready! :)")
+
+	@client.event
+	async def on_message(message):
+		if message.content.startswith("!"):
+			if message.content.startswith("!get"):
+				await Bot.check_player_command(message)
+			elif message.content.startswith("!update"):
+				await Bot.update(message.channel)
+
+	#TODO: Add the option to set the timezone
+	#TODO: Add a help message for this command and all of the variants and arguments and shit
+	async def check_player_command(message):
+		content = message.content
+		print(content)
+		print(content.split())
+		day = Bot.get_today_name()
+
+		split_msg = content.split()
+		if "tomorrow" in split_msg:
+			day = calendar.day_name[datetime.date.today().weekday() + 1]
+
+		tz = TimezoneHelper.get_timezone(split_msg[len(split_msg) - 1])
+		del(split_msg[len(split_msg) - 1])
+		start = TimezoneHelper.get_start_time(tz)
+		print("Start Time: ", start)
+		
+		if len(split_msg) == 2:
+			given_day = content.split()[1].lower()
+			player = Bot.get_player_by_name(given_day)
+			if player != None:
+				schedule_embed = Formatter.get_player_on_day(player, day)
+				await Bot.client.send_message(message.channel, embed=schedule_embed)
+				return
+
+			if given_day in TimeOffsets().offsets or given_day in TimeOffsets().alt_offsets:
+				schedule_embed = Formatter.get_hour_schedule(Bot.players, Bot.week_schedule, day, given_day)
+				await Bot.client.send_message(message.channel, embed=schedule_embed)
+				return
+			elif given_day == "today" or given_day == "tomorrow":
+				schedule_embed = Formatter.get_day_schedule(Bot.players, day)
+				await Bot.client.send_message(message.channel, embed=schedule_embed)
+				return
+			elif given_day == "week":
+				await Bot.post_week_schedule(Bot.players, message.channel)
+				return
+			else:
+				day = content.split()[1].title()
+				if not day in list(calendar.day_name):
+					await Bot.client.send_message(message.channel, "Invalid day.")
+					return
+				schedule_embed = Formatter.get_day_schedule(Bot.players, day)
+				await Bot.client.send_message(message.channel, embed=schedule_embed)
+				return
+			await Bot.client.send_message("Invalid command: no player/day given.")
+		elif len(split_msg) == 3:
+			player_name = split_msg[1]
+			given_day = split_msg[2].lower()
+			player = Bot.get_player_by_name(player_name)
+			if player != None:
+				if given_day == "tomorrow" or given_day == "today":
+					schedule_embed = Formatter.get_player_on_day(player, day)
+					await Bot.client.send_message(message.channel, embed=schedule_embed)
+					return
+				else:
+					await Bot.client.send_message(message.channel, "Invalid time given.")
+			else:
+				await Bot.client.send_message(message.channel, "Invalid player given.")
+		elif len(split_msg) == 4:
+			player_name = split_msg[1].lower()
+			player = Bot.get_player_by_name(player_name)
+			if player == None:
+				await Bot.client.send_message(message.channel, "Invalid player.")
+				return
+
+			decider = split_msg[2].lower()
+			given_day = split_msg[3].title()
+			if not given_day in list(calendar.day_name) and decider == "on":
+				await Bot.client.send_message(message.channel, "Invalid day name")
+				return
+			
+			if decider == "at":
+				await Bot.client.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day))
+			elif decider == "on":
+				try:
+					await Bot.client.send_message(message.channel, embed=Formatter.get_player_on_day(player, given_day))
+				except:
+					await Bot.client.send_message(message.channel, "Invalid time.")
+			else:
+				await Bot.client.send_message(message.channel, "Invalid identifier.")
+		elif len(split_msg) == 6:
+			player_name = split_msg[1].lower()
+			player = Bot.get_player_by_name(player_name)
+			if player == None:
+				await Bot.client.send_message(message.channel, "Invalid player.")
+				return
+
+			time = split_msg[3]
+			given_day = split_msg[5].title()
+
+			if not given_day in list(calendar.day_name):
+				await Bot.client.send_message(message.channel, "Invalid day.")
+			else:
+				try:
+					msg = Formatter.get_player_at_time(player, given_day, time)
+					await Bot.client.send_message(message.channel, msg)
+				except:
+					await Bot.client.send_message(message.channel, "Invalid time.")
+
+	async def post_week_schedule(players, channel):
+		embeds = Formatter.get_week_schedule(players)
+		for schedule_embed in embeds:
+			await Bot.client.send_message(channel, embed=schedule_embed)
+			await asyncio.sleep(1)
+
+	def get_today_name():
+		day_int = datetime.date.today().weekday()
+		return calendar.day_name[day_int]
+
+	async def update(channel):
+		if Bot.scanning: return
+		await Bot.client.send_message(channel, "Scanning sheet...")
+		Bot.scanning = True
+		Bot.players = Bot.scraper.get_players()
+		await Bot.client.send_message(channel, "Rescanned sheet.")
+		Bot.scanning = False
+
+	def get_player_by_name(name):
+		for player in Bot.players:
+			if player.name.lower() == name.lower():
+				return player
+
+Bot.client.run(test_token)

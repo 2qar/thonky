@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "scrim-schedule-b-1533531847672",
+  "private_key_id": "f210d5f9341283b1268b0830b6e4c1943d59b64d",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCnm61eunLk9Akb\nhgjzw/1CsDH+sZXJo0f2bn23weBL4HezNVV/1qRbMGQrFBawZfXJ/ag4VfpndhPC\nyd5DBuwX5J+j2FXiWoNcmVuyGOwaZp2rAoRmYc/TapB4mU+p54UY8gSExPJbxFR/\nsdXN+maWq/NkGKZ9y7ccxxfNLii/hAQF2lpspraUeBNQSHEBh3twTc4oWuqHftc4\ngKmn8+9hjJ37c7O960Q0+BNW2fFAurUXFJ5+XkMjEwM2iXqbcbe4X+Q1bjSeAv95\ngjNp5IOc9Vaqh4enti11FTGglwl5czOLZTCQ0rcFDiiHOtfdDMIU0jXxIAj/4RNb\neS1DPiKrAgMBAAECggEACNbIvP2n2yjUJXZF7kEQOp5FzLDl0tVAZsprPoUZbzbz\nvmjaIkdEsfsVKpZryeVeocaK7V76Dnm8z2F2Tgzv53oAQejsl+bTwE7ldeN4Pr4u\n+MVFtovYT3ByalcUy0OGkosKL6GenGCitNHr52nEqOksM+5UMr8gYC1PCobcJu6u\nmFFLjjikrl3I8e7ef6TjCGGkQ2WzLNVZ5xVW1sG0wjjubZqiQU35/4KnBlOBSDJS\nNIF8ti3hsNkhUcrBJGTVLI9xWuGdKAs/qRWtuXGg2c5bKsmfsolbdp0m4NytY/Qv\nWt3sf0LEgkOVMxPHKY1m/mx9ainSqk/3RVORngSpFQKBgQDivva9BeBnO9d6XsWC\nFUJGhMbWQyMXcApSDKBfs/xHEk94e4YbYY+f+Mr5In3fi/ulD42uP2aHFQ0/n7/j\ntLKhKvKGAbwBOQzfM0+sG7IuZQQ8CqoL8Y1Wh9G9O4H3hx46sWDSxkkW3Kf6Sds1\nXzgJiwSbVW8TBedBCKWkvlsdZQKBgQC9O32K8cDS2GbGUfPiLowXaGKD0vM3s5su\nC218QIpm/zqH0DdH8w/bevO+l98EjlIf4YbsH2tLUJaPNu9L1Q7LlrO6l93NAUHZ\nF6sXqOgndczPuoJNttjIHWaaCLMt+Pr3RIKBlAbb3l8JGAgHU458euEPNV60tdiR\n8mxOz80GzwKBgG0S+9J2DzrZ2I/vIweuflE58gSEC09tACn0FPm0tTjjIAOPODXX\nuqVzowAxjWeKCSWf08Hskb+NavAeQsqg1AUficbY8r2L2htMrZjXQeF7iovvfVl9\ne0YS09w50g1mnC4TwcXiyKoMv2lxOdf01BoTG8Y1VNdL0bDBHh2fzGjZAoGBAJ4e\n2baCb+c+4BITZMC4uGLO3JLecFE5CRAeiGvs2jlaR6Q4vhim57c0M/wslzQNYF43\nazBeyJ70RfqBos8wxt4jnSbrw3CL/mPSvSpV/zcJ3gwuArfBc78zogpP/rkJdVus\nqYhxEpIibDMDG6JTlZo6a1jz9aD22nKJqSrpxJ5NAoGBANTX1nnswyzXnDdnLb5f\nXqY1oIXzUTYAb9q9VMVxXRJkDP5N2K7NuZLuGuOtpHN/gHp3RqlO4hh5+k/nEjHa\nUx3jRBZ7V7wgossSm6NFPbS3YWzUEt6nR3DUXSDc+82qQd4VXPLrvYq6IiQf+Z4M\nYY2oCKwmE9ro+P1c8SMeC9eb\n-----END PRIVATE KEY-----\n",
+  "client_email": "scrim-reader@scrim-schedule-b-1533531847672.iam.gserviceaccount.com",
+  "client_id": "115092863873749133902",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/scrim-reader%40scrim-schedule-b-1533531847672.iam.gserviceaccount.com"
+}
