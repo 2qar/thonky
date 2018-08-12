@@ -1,12 +1,13 @@
 from discord import Embed
 from sheetbot import Player
-from sheetbot import TimeOffsets
 from sheetbot import StatusEmotes
 import calendar
 import datetime
 
+#TODO: Make this instanceable
 class Formatter():
-	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:']
+	zone = "PDT"
+	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
 	role_emotes = {
 		"Tanks": ":shield:",
 		"DPS": ":crossed_swords:",
@@ -17,28 +18,32 @@ class Formatter():
 
 	thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
 
+	sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
+
 	def get_template_embed():
 		embed = Embed()
 		embed.title = "Link to Spreadsheet"
-		embed.url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162" 
-		embed.set_footer(text="Times shown in PDT")
+		embed.url = Formatter.sheet_url
+		embed.set_footer(text="Times shown in {0}".format(Formatter.zone))
 		embed.set_thumbnail(url=Formatter.thonk_link)
 		return embed
 
 	# spits back the player's availability in emotes
-	def get_day_availability(player, day):
+	def get_day_availability(player, day, start_time):
 		data = {}
 		availability_on_day = player.get_availability_for_day(day)
-		offsets = TimeOffsets().offsets
 
-		for key in offsets:
-			available = availability_on_day[offsets[key]]
+		for i in range(0, len(availability_on_day)):
+			available = availability_on_day[i]
 			available_emote = StatusEmotes[available].value
-			data[key] = available_emote
+			time = i + start_time
+			data[time] = available_emote
+		print(data)
 		return data
 
-	def get_player_at_time(player, day, time):
-		availability = player.get_availability_at_time(day, time)
+	def get_player_at_time(player, day, time, start):
+		availability = player.get_availability_at_time(day, time, start)
+		print("availability: ", availability)
 		availability_responses = {
 			"Yes": " is available",
 			"Maybe": " might be available",
@@ -51,22 +56,22 @@ class Formatter():
 			message += "."
 		return message
 
-	def get_player_on_day(player, day):
+	def get_player_on_day(player, day, start_time):
 		embed = Formatter.get_template_embed()
 		embed.set_author(name="{0} on {1}".format(player.name, day))
 		embed.set_thumbnail(url=Formatter.thonk_link)
-		formatted_data = Formatter.get_day_availability(player, day)
+		formatted_data = Formatter.get_day_availability(player, day, start_time)
 
 		for key in formatted_data:
 			embed.add_field(name=key, value=formatted_data[key], inline=False)
 
 		return embed
 
-	def get_hour_schedule(players, week_schedule, day, hour):
+	def get_hour_schedule(players, week_schedule, day, hour, start_time):
 		embed = Formatter.get_template_embed()
 
 		day_obj = week_schedule.get_day(day)
-		activity = day_obj.get_activity_at_time(hour)
+		activity = day_obj.get_activity_at_time(hour, start_time)
 		format_name = day_obj.get_formatted_name()
 		title = "{0} on {1} at {2} PM".format(activity, format_name, hour)
 		embed.set_author(name=title)
@@ -79,7 +84,7 @@ class Formatter():
 		}
 
 		for player in players:
-			available = player.get_availability_at_time(day, hour)
+			available = player.get_availability_at_time(day, hour, start_time)
 			roles[player.role].append([player.name, available])
 
 		for role in roles:
@@ -97,19 +102,19 @@ class Formatter():
 
 		return embed
 
-	def get_day_schedule(players, day):
+	def get_day_schedule(players, day, start_time):
 		embed = Formatter.get_template_embed()
 		embed.set_author(name="Schedule for " + day) 
 
 		time_string = ""
-		for time in range(4, len(Formatter.letter_emotes) - 1):
-			time_string += Formatter.letter_emotes[time] + ", "
-		time_string += Formatter.letter_emotes[len(Formatter.letter_emotes) - 1]
+		for time in range(0, 5):
+			time_string += Formatter.letter_emotes[time + start_time] + ", "
+		time_string += Formatter.letter_emotes[5 + start_time]
 		embed.add_field(name="Player Name", value = time_string, inline=False)
 	
 		# add all of the players to the embed
 		for player in players:
-			availability = Formatter.get_day_availability(player, day)
+			availability = Formatter.get_day_availability(player, day, start_time)
 
 			status_emotes = []
 			for key in availability:

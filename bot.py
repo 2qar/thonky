@@ -2,7 +2,6 @@ import discord
 import asyncio
 from sheetbot import Player
 from sheetbot import SheetScraper
-from sheetbot import TimeOffsets
 from formatter import Formatter
 from timezonehelper import TimezoneHelper
 import calendar
@@ -15,14 +14,16 @@ test_token = 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
 
 class Bot():
 	client = discord.Client()
-	#scraper = SheetScraper()
-	#players = scraper.get_players()
-	#week_schedule = scraper.get_week_schedule()
+	scraper = SheetScraper()
+	players = scraper.get_players()
+	week_schedule = scraper.get_week_schedule()
 	scanning = False
 	
 	@client.event
 	async def on_ready():
 		print("Ready! :)")
+		playing = discord.Game(name="with spreadsheets", url=Formatter.sheet_url, type=1)
+		await Bot.client.change_presence(game=playing)
 
 	@client.event
 	async def on_message(message):
@@ -39,30 +40,43 @@ class Bot():
 		print(content)
 		print(content.split())
 		day = Bot.get_today_name()
+		start = 4
+		Formatter.zone = "PDT"
 
 		split_msg = content.split()
 		if "tomorrow" in split_msg:
-			day = calendar.day_name[datetime.date.today().weekday() + 1]
+			try:
+				day = calendar.day_name[datetime.date.today().weekday() + 1]
+			except:
+				await Bot.client.send_message(message.channel, "It's Sunday silly")
+				return
 
-		tz = TimezoneHelper.get_timezone(split_msg[len(split_msg) - 1])
-		del(split_msg[len(split_msg) - 1])
-		start = TimezoneHelper.get_start_time(tz)
-		print("Start Time: ", start)
+		try:
+			tz = TimezoneHelper.get_timezone(split_msg[len(split_msg) - 1])
+			del(split_msg[len(split_msg) - 1])
+			start_info = TimezoneHelper.get_start_time(tz)
+			start = start_info[0]
+			Formatter.zone = start_info[1]
+			print("Start Time: ", start)
+		except:
+			print("not doin this shit")
 		
 		if len(split_msg) == 2:
 			given_day = content.split()[1].lower()
 			player = Bot.get_player_by_name(given_day)
 			if player != None:
-				schedule_embed = Formatter.get_player_on_day(player, day)
+				schedule_embed = Formatter.get_player_on_day(player, day, start)
 				await Bot.client.send_message(message.channel, embed=schedule_embed)
 				return
 
-			if given_day in TimeOffsets().offsets or given_day in TimeOffsets().alt_offsets:
-				schedule_embed = Formatter.get_hour_schedule(Bot.players, Bot.week_schedule, day, given_day)
+			try:
+				schedule_embed = Formatter.get_hour_schedule(Bot.players, Bot.week_schedule, day, given_day, start)
 				await Bot.client.send_message(message.channel, embed=schedule_embed)
 				return
-			elif given_day == "today" or given_day == "tomorrow":
-				schedule_embed = Formatter.get_day_schedule(Bot.players, day)
+			except:
+				print("Attempted to get schedule for day with start time ", given_day)
+			if given_day == "today" or given_day == "tomorrow":
+				schedule_embed = Formatter.get_day_schedule(Bot.players, day, start)
 				await Bot.client.send_message(message.channel, embed=schedule_embed)
 				return
 			elif given_day == "week":
@@ -73,7 +87,7 @@ class Bot():
 				if not day in list(calendar.day_name):
 					await Bot.client.send_message(message.channel, "Invalid day.")
 					return
-				schedule_embed = Formatter.get_day_schedule(Bot.players, day)
+				schedule_embed = Formatter.get_day_schedule(Bot.players, day, start)
 				await Bot.client.send_message(message.channel, embed=schedule_embed)
 				return
 			await Bot.client.send_message("Invalid command: no player/day given.")
@@ -83,7 +97,7 @@ class Bot():
 			player = Bot.get_player_by_name(player_name)
 			if player != None:
 				if given_day == "tomorrow" or given_day == "today":
-					schedule_embed = Formatter.get_player_on_day(player, day)
+					schedule_embed = Formatter.get_player_on_day(player, day, start)
 					await Bot.client.send_message(message.channel, embed=schedule_embed)
 					return
 				else:
@@ -104,10 +118,13 @@ class Bot():
 				return
 			
 			if decider == "at":
-				await Bot.client.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day))
+				try:
+					await Bot.client.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day, start))
+				except:
+					await Bot.client.send_message(message.channel, "Invalid time.")
 			elif decider == "on":
 				try:
-					await Bot.client.send_message(message.channel, embed=Formatter.get_player_on_day(player, given_day))
+					await Bot.client.send_message(message.channel, embed=Formatter.get_player_on_day(player, given_day, start))
 				except:
 					await Bot.client.send_message(message.channel, "Invalid time.")
 			else:
@@ -126,7 +143,7 @@ class Bot():
 				await Bot.client.send_message(message.channel, "Invalid day.")
 			else:
 				try:
-					msg = Formatter.get_player_at_time(player, given_day, time)
+					msg = Formatter.get_player_at_time(player, given_day, time, start)
 					await Bot.client.send_message(message.channel, msg)
 				except:
 					await Bot.client.send_message(message.channel, "Invalid time.")
@@ -143,9 +160,10 @@ class Bot():
 
 	async def update(channel):
 		if Bot.scanning: return
-		await Bot.client.send_message(channel, "Scanning sheet...")
 		Bot.scanning = True
+		await Bot.client.send_message(channel, "Scanning sheet...")
 		Bot.players = Bot.scraper.get_players()
+		Bot.week_schedule = Bot.scraper.get_week_schedule()
 		await Bot.client.send_message(channel, "Rescanned sheet.")
 		Bot.scanning = False
 
@@ -154,4 +172,4 @@ class Bot():
 			if player.name.lower() == name.lower():
 				return player
 
-Bot.client.run(test_token)
+Bot.client.run(main_token)

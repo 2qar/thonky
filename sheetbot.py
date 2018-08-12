@@ -16,31 +16,6 @@ class Day(Enum):
 	FRIDAY = 24
 	SATURDAY = 30
 	SUNDAY = 36
-
-class TimeOffsets():
-	def get_time_offset(time):
-		try:
-			return TimeOffsets.offsets[time]
-		except:
-			return TimeOffsets.alt_offsets[time]
-		return -1
-
-	offsets = {
-		"4-5" : 0,
-		"5-6" : 1,
-		"6-7" : 2,
-		"7-8" : 3,
-		"8-9" : 4,
-		"9-10" : 5
-	}
-	alt_offsets = {
-		"4": 0,
-		"5": 1,
-		"6": 2,
-		"7": 3,
-		"8": 4,
-		"9": 5 
-	}
 	
 class Player():
 	def __init__(self, name, role, availability):
@@ -52,8 +27,10 @@ class Player():
 		start = Day[day.upper()].value
 		return self.availability[start:start + 6]
 
-	def get_availability_at_time(self, day, time):
-		offset = TimeOffsets.get_time_offset(time)
+	def get_availability_at_time(self, day, time, start_time):
+		offset = int(time) - start_time
+		if offset < 0:
+			return None
 		return self.get_availability_for_day(day)[offset]
 
 	def __str__(self):
@@ -65,8 +42,10 @@ class DaySchedule():
 		self.date = date
 		self.activities = activities
 
-	def get_activity_at_time(self, time):
-		offset = TimeOffsets.get_time_offset(time)
+	def get_activity_at_time(self, time, start_time):
+		offset = int(time) - start_time
+		if offset < 0:
+			return None
 		return self.activities[offset]
 
 	def get_formatted_name(self):

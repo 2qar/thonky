@@ -29,10 +29,9 @@ class TimezoneHelper():
 		hour = tz_start.hour + (tz_start.utcoffset().total_seconds() / 3600)
 		hour %= 12
 		hour = int(hour)
-		return hour
+		timezone = tz_start.tzinfo.tzname(tz_start)
+		return [hour, timezone]
 
 	def get_today_name(tz):
 		day_int = tz.localize(datetime.datetime.utcnow()).weekday()
 		return calendar.day_name[day_int]
-
-print(TimezoneHelper.get_start_time(timezone("US/Pacific")))
