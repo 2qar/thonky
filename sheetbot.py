@@ -42,7 +42,7 @@ class DaySchedule():
 		self.date = date
 		self.activities = activities
 
-	def get_activity_at_time(self, time, start_time):
+	def get_activity_at_time(self, time, start_time=4):
 		offset = int(time) - start_time
 		if offset < 0:
 			return None

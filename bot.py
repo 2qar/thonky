@@ -8,15 +8,22 @@ import calendar
 import datetime
 from pytz import timezone
 import pytz
+from ping_scheduler import PingScheduler
 
 main_token = 'NDc3NjI3MzczMDMwNzM1ODcy.DlDQeg.MRWwrnDCSmfOxsY3mq6TsWkR5sI'
 test_token = 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
 
+#TODO: Reorganize the project: Bot class should extend Client, some classes like this one should be instanceable, some classes in sheetbot.py should be moved to their own files
+#TODO: A command to check the activity schedule (just add a command to the formatter to format the data from scraper.get_week_schedule())
+#TODO: Use Advanced Python Scheduler to schedule a ping 30 minutes before every event that isn't Free
+#TODO: Save player player responses to JSON every Sunday night, make command that gets averages for player responses (ex 60% Yes, 20% Maybe, 20% No)
+	#maybe make more commands using this player data
 class Bot():
 	client = discord.Client()
 	scraper = SheetScraper()
 	players = scraper.get_players()
 	week_schedule = scraper.get_week_schedule()
+	scheduler = PingScheduler()
 	scanning = False
 	
 	@client.event
@@ -24,7 +31,9 @@ class Bot():
 		print("Ready! :)")
 		playing = discord.Game(name="with spreadsheets", url=Formatter.sheet_url, type=1)
 		await Bot.client.change_presence(game=playing)
-
+		Bot.scheduler.init_auto_update(Bot.update)
+		Bot.scheduler.init_schedule_pings(Bot.client, Bot.week_schedule)
+		
 	@client.event
 	async def on_message(message):
 		if message.content.startswith("!"):
@@ -33,7 +42,6 @@ class Bot():
 			elif message.content.startswith("!update"):
 				await Bot.update(message.channel)
 
-	#TODO: Add the option to set the timezone
 	#TODO: Add a help message for this command and all of the variants and arguments and shit
 	async def check_player_command(message):
 		content = message.content
@@ -159,13 +167,19 @@ class Bot():
 		day_int = datetime.date.today().weekday()
 		return calendar.day_name[day_int]
 
-	async def update(channel):
+	async def update(channel=None):
+		should_send_messages = channel != None
+
 		if Bot.scanning: return
+
 		Bot.scanning = True
-		await Bot.client.send_message(channel, "Scanning sheet...")
+		if should_send_messages: 
+			await Bot.client.send_message(channel, "Scanning sheet...")
 		Bot.players = Bot.scraper.get_players()
 		Bot.week_schedule = Bot.scraper.get_week_schedule()
-		await Bot.client.send_message(channel, "Rescanned sheet.")
+		Bot.scheduler.init_schedule_pings(Bot.client, Bot.week_schedule)
+		if should_send_messages: 
+			await Bot.client.send_message(channel, "Rescanned sheet.")
 		Bot.scanning = False
 
 	def get_player_by_name(name):

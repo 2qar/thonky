@@ -38,7 +38,6 @@ class Formatter():
 			available_emote = StatusEmotes[available].value
 			time = i + start_time
 			data[time] = available_emote
-		print(data)
 		return data
 
 	def get_player_at_time(player, day, time, start):
@@ -115,21 +114,19 @@ class Formatter():
 		# add all of the players to the embed
 		for player in players:
 			try:
-					availability = Formatter.get_day_availability(player, day, start_time)
+				availability = Formatter.get_day_availability(player, day, start_time)
 
-					status_emotes = []
-					for key in availability:
-						status_emotes.append(availability[key])
-					print(status_emotes)
-					print(player.name)
+				status_emotes = []
+				for key in availability:
+					status_emotes.append(availability[key])
 
-					formatted_status = ""
-					for emote in range(len(status_emotes) - 1):
-						formatted_status += status_emotes[emote] + ", "
-					formatted_status += status_emotes[len(status_emotes) - 1]
-						
-					player_name = Formatter.format_player_name(player)
-					embed.add_field(name=player_name, value=formatted_status, inline=False)
+				formatted_status = ""
+				for emote in range(len(status_emotes) - 1):
+					formatted_status += status_emotes[emote] + ", "
+				formatted_status += status_emotes[len(status_emotes) - 1]
+					
+				player_name = Formatter.format_player_name(player)
+				embed.add_field(name=player_name, value=formatted_status, inline=False)
 			except:
 				print("Unable to add player {0} to embed".format(player.name))
 
@@ -178,4 +175,3 @@ class Formatter():
 
 	def format_player_name(player):
 		return Formatter.role_emotes[player.role] + " " + player.name 
-
