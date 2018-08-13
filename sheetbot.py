@@ -103,13 +103,14 @@ class SheetScraper():
 		for cell in player_cells:
 			if cell.value != '':
 				vals = availability.row_values(row=cell.row)
-				if len(vals) == 3:
-					continue
+				print(vals)
 				if vals[1] != '':
 					role = vals[1]
 				roles[role] += 1
 				name = vals[2]
 				available_times = vals[3:]
+				if len(vals) == 3:
+					continue
 				players.append(Player(name, role, available_times))
 		print("Done! :)")
 		return players
