@@ -104,6 +104,7 @@ class Bot():
 					await Bot.client.send_message(message.channel, "Invalid time given.")
 			else:
 				await Bot.client.send_message(message.channel, "Invalid player given.")
+		#TODO: Add format "!get friday at 4"
 		elif len(split_msg) == 4:
 			player_name = split_msg[1].lower()
 			player = Bot.get_player_by_name(player_name)

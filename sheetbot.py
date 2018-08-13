@@ -103,6 +103,8 @@ class SheetScraper():
 		for cell in player_cells:
 			if cell.value != '':
 				vals = availability.row_values(row=cell.row)
+				if len(vals) == 3:
+					continue
 				if vals[1] != '':
 					role = vals[1]
 				roles[role] += 1
