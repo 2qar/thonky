@@ -6,12 +6,18 @@ class PingScheduler():
 	server = '438922759372800000'
 	announce_channel = '445735181295550467'
 	general = '438922759372800002'
+
+	main_roster_mention = '<@&445734608135258141>'
+
+	remind_intervals = [15, 5]
+	update_interval = 30
+
 	def __init__(self):
 		self.scheduler = AsyncIOScheduler()
 		self.scheduler.start()
 
 	def init_auto_update(self, update):
-		self.scheduler.add_job(update, 'interval', hours=1, id="update_schedule")
+		self.scheduler.add_job(update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")
 	
 	def init_schedule_pings(self, bot_client, week_schedule):
 		try:
@@ -36,10 +42,11 @@ class PingScheduler():
 					time = i + 16
 					activity = day.activities[i]
 					if activity != "Free" and activity != "TBD":
-						run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=30)
-						ping_string = "@everyone {0} in 30 minutes".format(activity)
-						id_str = day.get_formatted_name() + " " + str(time)
-						self.scheduler.add_job(bot_client.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
+						for interval in PingScheduler.remind_intervals:
+							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
+							ping_string = "{0} {1} in {2} minutes".format(PingScheduler.main_roster_mention, activity, interval)
+							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)
+							self.scheduler.add_job(bot_client.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
 						break
 
 		self.scheduler.print_jobs()
