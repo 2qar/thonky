@@ -12,7 +12,7 @@ class Formatter():
 		"Tanks": ":shield:",
 		"DPS": ":crossed_swords:",
 		"Supports": ":ambulance:",
-		"Flex": ":muscle:"
+		"Coaches": ":muscle:"
 	}
 	role_status_emotes = [":warning:", ":warning:", ":ballot_box_with_check:", ":ballot_box_with_check:"] 
 
@@ -79,7 +79,7 @@ class Formatter():
 			"Tanks": [],
 			"DPS": [],
 			"Supports": [],
-			"Flex": []
+			"Coaches": []
 		}
 
 		for player in players:
@@ -139,7 +139,7 @@ class Formatter():
 			"Tanks": [],
 			"DPS": [],
 			"Supports": [],
-			"Flex": []
+			"Coaches": []
 		}
 
 		for player in players:

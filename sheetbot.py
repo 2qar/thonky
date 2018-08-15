@@ -69,6 +69,7 @@ class WeekSchedule():
 			week_string += str(day) + "\n"
 		return week_string
 
+#TODO: Make an object that makes getting stuff from the array of players easier
 class SheetScraper():
 	doc_key = '15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c'
 	def __init__(self):
@@ -96,7 +97,7 @@ class SheetScraper():
 			"Tanks" : 0,
 			"DPS" : 0,
 			"Supports" : 0,
-			"Flex" : 0
+			"Coaches" : 0
 		}
 
 		print("(4/4) Creating player objects...")

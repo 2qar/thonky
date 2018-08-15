@@ -9,13 +9,13 @@ import datetime
 from pytz import timezone
 import pytz
 from ping_scheduler import PingScheduler
+from player_saver import PlayerSaver
 
 main_token = 'NDc3NjI3MzczMDMwNzM1ODcy.DlDQeg.MRWwrnDCSmfOxsY3mq6TsWkR5sI'
 test_token = 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
 
 #TODO: Reorganize the project: Bot class should extend Client, some classes like this one should be instanceable, some classes in sheetbot.py should be moved to their own files
 #TODO: A command to check the activity schedule (just add a command to the formatter to format the data from scraper.get_week_schedule())
-#TODO: Use Advanced Python Scheduler to schedule a ping 30 minutes before every event that isn't Free
 #TODO: Save player player responses to JSON every Sunday night, make command that gets averages for player responses (ex 60% Yes, 20% Maybe, 20% No)
 	#maybe make more commands using this player data
 class Bot():
@@ -33,6 +33,7 @@ class Bot():
 		await Bot.client.change_presence(game=playing)
 		Bot.scheduler.init_auto_update(Bot.update)
 		Bot.scheduler.init_schedule_pings(Bot.client, Bot.week_schedule)
+		Bot.scheduler.init_save_player_data(Bot.scraper)
 		
 	@client.event
 	async def on_message(message):
