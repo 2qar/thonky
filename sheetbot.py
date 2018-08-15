@@ -1,73 +1,17 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from enum import Enum
+from players import Player
+from players import Players
+from day import Day
+from schedules import DaySchedule
+from schedules import WeekSchedule
 
 class StatusEmotes(Enum):
 	Yes = ":white_check_mark:"
 	Maybe = ":grey_question:"
 	No = ":x:"
-
-# day offsets
-class Day(Enum):
-	MONDAY = 0
-	TUESDAY = 6
-	WEDNESDAY = 12
-	THURSDAY = 18
-	FRIDAY = 24
-	SATURDAY = 30
-	SUNDAY = 36
 	
-class Player():
-	def __init__(self, name, role, availability):
-		self.name = name
-		self.role = role
-		self.availability = availability
-
-	def get_availability_for_day(self, day):
-		start = Day[day.upper()].value
-		return self.availability[start:start + 6]
-
-	def get_availability_at_time(self, day, time, start_time):
-		offset = int(time) - start_time
-		if offset < 0:
-			return None
-		return self.get_availability_for_day(day)[offset]
-
-	def __str__(self):
-		return "Name: " + self.name + "\nRole: " + self.role + "\nAvailability: " + str(self.availability)
-
-class DaySchedule():
-	def __init__(self, name, date, activities):
-		self.name = name
-		self.date = date
-		self.activities = activities
-
-	def get_activity_at_time(self, time, start_time=4):
-		offset = int(time) - start_time
-		if offset < 0:
-			return None
-		return self.activities[offset]
-
-	def get_formatted_name(self):
-		return self.name + ", " + self.date
-
-	def __str__(self):
-		return self.name + ", " + self.date + ": " + str(self.activities)
-
-class WeekSchedule():
-	def __init__(self, days):
-		self.days = days
-
-	def get_day(self, name):
-		for day in self.days:
-			if name.lower() == day.name.lower():
-				return day
-
-	def __str__(self):
-		week_string = ""
-		for day in self.days:
-			week_string += str(day) + "\n"
-		return week_string
 
 #TODO: Make an object that makes getting stuff from the array of players easier
 class SheetScraper():
@@ -93,12 +37,7 @@ class SheetScraper():
 		
 		role = ""
 		players = []
-		roles = {
-			"Tanks" : 0,
-			"DPS" : 0,
-			"Supports" : 0,
-			"Coaches" : 0
-		}
+		sorted_players = {}
 
 		print("(4/4) Creating player objects...")
 		for cell in player_cells:
@@ -107,14 +46,22 @@ class SheetScraper():
 				print(vals)
 				if vals[1] != '':
 					role = vals[1]
-				roles[role] += 1
+					sorted_players[role] = []
 				name = vals[2]
 				available_times = vals[3:]
 				if len(vals) == 3:
 					continue
 				players.append(Player(name, role, available_times))
+
+		for player in players:
+			sorted_players[player.role].append(player)
+
+		player_obj = Players(sorted_players, players)
+
+		print(sorted_players)
+
 		print("Done! :)")
-		return players
+		return player_obj
 
 	def get_week_schedule(self):
 		doc = self.gc.open_by_key(SheetScraper.doc_key)

@@ -1,12 +1,12 @@
 import json
-from sheetbot import Day
+from day import Day
 import os
 
 class PlayerSaver():
 	def save_players(players, week_schedule):
 		week = week_schedule.days[0].date.replace('/', '-')
 		PlayerSaver.make_folder_if_necessary("players")
-		for player in players:
+		for player in players.unsorted_list:
 				player_folder = "players/{0}".format(player.name)
 				PlayerSaver.make_folder_if_necessary(player_folder)
 				filename = player_folder + "/{0}.json".format(week)

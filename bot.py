@@ -1,6 +1,6 @@
 import discord
 import asyncio
-from sheetbot import Player
+from players import Player
 from sheetbot import SheetScraper
 from formatter import Formatter
 from timezonehelper import TimezoneHelper
@@ -51,6 +51,7 @@ class Bot():
 		day = Bot.get_today_name()
 		start = 4
 		Formatter.zone = "PDT"
+		#TODO: Args: --players, -tz []
 
 		split_msg = content.split()
 		if "tomorrow" in split_msg:
@@ -184,8 +185,8 @@ class Bot():
 		Bot.scanning = False
 
 	def get_player_by_name(name):
-		for player in Bot.players:
+		for player in Bot.players.unsorted_list:
 			if player.name.lower() == name.lower():
 				return player
 
-Bot.client.run(main_token)
+Bot.client.run(test_token)

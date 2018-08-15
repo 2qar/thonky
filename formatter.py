@@ -1,10 +1,11 @@
 from discord import Embed
-from sheetbot import Player
+from players import Player
 from sheetbot import StatusEmotes
 import calendar
 import datetime
 
 #TODO: Make this instanceable
+#TODO: Make a week schedule thing that picks between the week schedule for players and the actual week schedule for activities and stuff
 class Formatter():
 	zone = "PDT"
 	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
@@ -12,7 +13,8 @@ class Formatter():
 		"Tanks": ":shield:",
 		"DPS": ":crossed_swords:",
 		"Supports": ":ambulance:",
-		"Coaches": ":muscle:"
+		"Flex": ":muscle:",
+		"Coaches": ":books:"
 	}
 	role_status_emotes = [":warning:", ":warning:", ":ballot_box_with_check:", ":ballot_box_with_check:"] 
 
@@ -75,26 +77,15 @@ class Formatter():
 		title = "{0} on {1} at {2} PM".format(activity, format_name, hour)
 		embed.set_author(name=title)
 
-		roles = {
-			"Tanks": [],
-			"DPS": [],
-			"Supports": [],
-			"Coaches": []
-		}
-
-		for player in players:
-			available = player.get_availability_at_time(day, hour, start_time)
-			roles[player.role].append([player.name, available])
-
-		for role in roles:
+		for role in players.sorted_list:
 			players_string = ""
 			available_count = 0
-			for player in roles[role]:
-				if player[1] == "Yes":
+			for player in players.sorted_list[role]:
+				available = player.get_availability_at_time(day, hour, start_time)
+				if available == "Yes":
 					available_count += 1
-				emote = StatusEmotes[player[1]].value
-				name = player[0]
-				player_str = name + "\t" + emote
+				emote = StatusEmotes[available].value
+				player_str = player.name + "\t" + emote
 				players_string += player_str + "\n"
 			role_name = Formatter.role_emotes[role] + " " + role + " " + Formatter.role_status_emotes[available_count]
 			embed.add_field(name=role_name, value=players_string)
@@ -105,14 +96,10 @@ class Formatter():
 		embed = Formatter.get_template_embed()
 		embed.set_author(name="Schedule for " + day) 
 
-		time_string = ""
-		for time in range(0, 5):
-			time_string += Formatter.letter_emotes[time + start_time] + ", "
-		time_string += Formatter.letter_emotes[5 + start_time]
-		embed.add_field(name="Player Name", value = time_string, inline=False)
-	
+		Formatter.add_time_field(embed, "Player Name", start_time)
+			
 		# add all of the players to the embed
-		for player in players:
+		for player in players.unsorted_list:
 			try:
 				availability = Formatter.get_day_availability(player, day, start_time)
 
@@ -134,21 +121,24 @@ class Formatter():
 
 		return embed
 
+	def get_week_activity_schedule(week_schedule, start_time):
+		embed = Formatter.get_template_embed()
+		Formatter.add_time_field(embed, "Times", start_time)
+
+		week = week_schedule.days[0].date
+		embed.set_author(name="Week of " + week)
+
+		for day in week_schedule.days:
+			title = day.get_formatted_name()
+			embed.add_field(name=title, value=day.activities, inline=False)
+		return embed
+
 	def add_role_availability(embed, players, day):
-		roles_with_player_availability = {
-			"Tanks": [],
-			"DPS": [],
-			"Supports": [],
-			"Coaches": []
-		}
-
-		for player in players:
-			roles_with_player_availability[player.role].append(player.get_availability_for_day(day))
-
-		for key in roles_with_player_availability:
+		for role in players.sorted_list:
 			count = [0] * 6
-			for schedule in roles_with_player_availability[key]:
-				for i in range(0, len(schedule)):
+			for player in players.sorted_list[role]:
+				schedule = player.get_availability_for_day(day)
+				for i in range(0, 6):
 					if schedule[i] == "Yes":
 						count[i] += 1
 
@@ -161,11 +151,18 @@ class Formatter():
 				schedule_string += emote_count[value] + ", "
 			schedule_string += emote_count[len(emote_count) - 1]
 
-			title = Formatter.role_emotes[key] + " " + key
+			title = Formatter.role_emotes[role] + " " + role
 			embed.add_field(name=title, value=schedule_string, inline=False)
 
 
 		return embed
+
+	def add_time_field(embed, title, start_time):
+		time_string = ""
+		for time in range(0, 5):
+			time_string += Formatter.letter_emotes[time + start_time] + ", "
+		time_string += Formatter.letter_emotes[5 + start_time]
+		embed.add_field(name=title, value = time_string, inline=False)
 
 	def get_week_schedule(players):
 		embeds = []
