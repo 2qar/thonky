@@ -90,7 +90,7 @@ class Bot():
 				await Bot.client.send_message(message.channel, embed=schedule_embed)
 				return
 			elif given_day == "week":
-				await Bot.post_week_schedule(Bot.players, message.channel)
+				await Bot.client.send_message(message.channel, embed=Formatter.get_week_activity_schedule(Bot.week_schedule, start))
 				return
 			else:
 				day = content.split()[1].title()
@@ -114,25 +114,27 @@ class Bot():
 					await Bot.client.send_message(message.channel, "Invalid time given.")
 			else:
 				await Bot.client.send_message(message.channel, "Invalid player given.")
-		#TODO: Add format "!get friday at 4"
+		#TODO: Add "!get today at [time]" and "!get tomorrow at [time]"
 		elif len(split_msg) == 4:
-			player_name = split_msg[1].lower()
-			player = Bot.get_player_by_name(player_name)
-			if player == None:
-				await Bot.client.send_message(message.channel, "Invalid player.")
-				return
-
-			decider = split_msg[2].lower()
-			given_day = split_msg[3].title()
-			if not given_day in list(calendar.day_name) and decider == "on":
-				await Bot.client.send_message(message.channel, "Invalid day name")
-				return
+			# target could be day name or player name
+			target = split_msg[1].lower()
 			
+			decider = split_msg[2].lower()
+			# given day could be a day or a time
+			given_day = split_msg[3].title()
+						
 			if decider == "at":
-				try:
-					await Bot.client.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day, start))
-				except:
-					await Bot.client.send_message(message.channel, "Invalid time.")
+				player = Bot.get_player_by_name(target)
+				if player == None:
+					try:
+						await Bot.client.send_message(message.channel, embed=Formatter.get_hour_schedule(Bot.players, Bot.week_schedule, target, given_day, start))
+					except:
+						await Bot.client.send_message(message.channel, "Invalid time or day.")
+				else:
+						try:
+							await Bot.client.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day, start))
+						except:
+							await Bot.client.send_message(message.channel, "Invalid time.")
 			elif decider == "on":
 				try:
 					await Bot.client.send_message(message.channel, embed=Formatter.get_player_on_day(player, given_day, start))

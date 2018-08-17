@@ -8,7 +8,14 @@ import datetime
 #TODO: Make a week schedule thing that picks between the week schedule for players and the actual week schedule for activities and stuff
 class Formatter():
 	zone = "PDT"
+
 	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
+
+	activity_emotes = {
+		"Free": ":free:",
+		"TBD": ":grey_question:"
+	}
+
 	role_emotes = {
 		"Tanks": ":shield:",
 		"DPS": ":crossed_swords:",
@@ -16,6 +23,7 @@ class Formatter():
 		"Flex": ":muscle:",
 		"Coaches": ":books:"
 	}
+
 	role_status_emotes = [":warning:", ":warning:", ":ballot_box_with_check:", ":ballot_box_with_check:"] 
 
 	thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
@@ -130,7 +138,18 @@ class Formatter():
 
 		for day in week_schedule.days:
 			title = day.get_formatted_name()
-			embed.add_field(name=title, value=day.activities, inline=False)
+
+			# format all of the activities into one nice and pretty string
+			formatted_activities = ""
+			for activity in range(0, len(day.activities) - 1):
+				act = day.activities[activity]
+				formatted_activity_name = Formatter.get_formatted_activity_name(act)
+				formatted_activities += formatted_activity_name + ", "
+			last_activity = day.activities[len(day.activities) - 1]
+			formatted_activities += Formatter.get_formatted_activity_name(last_activity)
+
+			embed.add_field(name=title, value=formatted_activities, inline=False)
+
 		return embed
 
 	def add_role_availability(embed, players, day):
@@ -169,6 +188,13 @@ class Formatter():
 		for day in range(0, 7):
 			embeds.append(Formatter.get_day_schedule(players, calendar.day_name[day]))
 		return embeds
+
+	def get_formatted_activity_name(activity):
+		try:
+			return Formatter.activity_emotes[activity]
+		except:
+			return activity
+
 
 	def format_player_name(player):
 		return Formatter.role_emotes[player.role] + " " + player.name 
