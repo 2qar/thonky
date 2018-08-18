@@ -23,8 +23,8 @@ class PingScheduler():
 		grab_player_time = datetime.datetime.combine(sunday, datetime.time(23))
 		self.scheduler.add_job(sheetscraper.get_players, 'date', run_date=grab_player_time)
 
-	def init_auto_update(self, update):
-		self.scheduler.add_job(update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")
+	def init_auto_update(self, bot):
+		self.scheduler.add_job(bot.update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")
 	
 	def init_schedule_pings(self, bot_client, week_schedule):
 		try:

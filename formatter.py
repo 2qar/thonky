@@ -5,7 +5,6 @@ import calendar
 import datetime
 
 #TODO: Make this instanceable
-#TODO: Make a week schedule thing that picks between the week schedule for players and the actual week schedule for activities and stuff
 class Formatter():
 	zone = "PDT"
 
@@ -52,11 +51,11 @@ class Formatter():
 
 	def get_player_at_time(player, day, time, start):
 		availability = player.get_availability_at_time(day, time, start)
-		print("availability: ", availability)
 		availability_responses = {
 			"Yes": " is available",
 			"Maybe": " might be available",
-			"No": " is not available"
+			"No": " is not available",
+			"Nothing": " has not left a response yet"
 		}
 		message = StatusEmotes[availability].value + " " + player.name + availability_responses[availability] + " at " + time
 		if datetime.date.today().weekday() != list(calendar.day_name).index(day):
@@ -89,12 +88,16 @@ class Formatter():
 			players_string = ""
 			available_count = 0
 			for player in players.sorted_list[role]:
-				available = player.get_availability_at_time(day, hour, start_time)
-				if available == "Yes":
-					available_count += 1
-				emote = StatusEmotes[available].value
-				player_str = player.name + "\t" + emote
-				players_string += player_str + "\n"
+				try:
+					available = player.get_availability_at_time(day, hour, start_time)
+					if available == "Yes":
+						available_count += 1
+					emote = StatusEmotes[available].value
+					player_str = player.name + "\t" + emote
+					players_string += player_str + "\n"
+				except:
+					players_string += player.name + "\t:ghost:\n"
+					print("Unable to add player {0} to {1} string".format(player.name, role))
 			role_name = Formatter.role_emotes[role] + " " + role + " " + Formatter.role_status_emotes[available_count]
 			embed.add_field(name=role_name, value=players_string)
 
@@ -111,9 +114,7 @@ class Formatter():
 			try:
 				availability = Formatter.get_day_availability(player, day, start_time)
 
-				status_emotes = []
-				for key in availability:
-					status_emotes.append(availability[key])
+				status_emotes = [availability[key] for key in availability]
 
 				formatted_status = ""
 				for emote in range(len(status_emotes) - 1):
@@ -158,12 +159,12 @@ class Formatter():
 			for player in players.sorted_list[role]:
 				schedule = player.get_availability_for_day(day)
 				for i in range(0, 6):
+					if i > len(schedule) - 1:
+						break
 					if schedule[i] == "Yes":
 						count[i] += 1
 
-			emote_count = []
-			for value in count:
-				emote_count.append(Formatter.letter_emotes[value])
+			emote_count = [Formatter.letter_emotes[value] for value in count]
 
 			schedule_string = ""
 			for value in range(0, len(emote_count) - 1):
@@ -184,16 +185,14 @@ class Formatter():
 		embed.add_field(name=title, value = time_string, inline=False)
 
 	def get_week_schedule(players):
-		embeds = []
-		for day in range(0, 7):
-			embeds.append(Formatter.get_day_schedule(players, calendar.day_name[day]))
-		return embeds
+		days = list(calendar.day_name)
+		return [Formatter.get_day_schedule(players, day) for day in days]
 
 	def get_formatted_activity_name(activity):
 		try:
 			return Formatter.activity_emotes[activity]
 		except:
-			return activity
+			return ':regional_indicator_{0}:'.format(activity[:1].lower())
 
 
 	def format_player_name(player):
