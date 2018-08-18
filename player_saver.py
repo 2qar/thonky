@@ -20,3 +20,51 @@ class PlayerSaver():
 	def make_folder_if_necessary(folder):
 		if not os.path.exists(folder):
 			os.makedirs(folder)
+
+class DataAnalyzer():
+	def get_player_responses(player_name):
+		player_folder = None
+		for player in os.listdir("players/"):
+			if player_name.lower() == player.lower():
+				player_folder = player
+
+		if player_folder == None: return None
+
+		data = {}
+		directory = "players/" + player_folder
+		for data_file in os.listdir(directory):
+			path = "players/{0}/{1}".format(player_folder, data_file)
+
+			# get the date to use as a key
+			dot = data_file.find(".")
+			key = data_file[:dot]
+
+			with open(path) as file:
+				data[key] = json.load(file)
+
+		return data
+
+	def get_response_counts(player_name):
+		data = DataAnalyzer.get_player_responses(player_name)
+		if data == None: return None
+
+		response_counts = {
+			"Yes": 0,
+			"Maybe": 0,
+			"No": 0,
+			"Nothing": 0
+		}
+
+		# get all of the response totals
+		for week in data:
+			for day in data[week]:
+				for response in data[week][day]:
+					response_counts[response] += 1
+
+		for response in response_counts:
+			percent = round(response_counts[response] / 42.0, 2)
+			formatted_percent = int(percent * 100)
+			print("{0}: {1}%".format(response, formatted_percent))
+
+for player in os.listdir("players/"):
+	DataAnalyzer.get_response_counts(player)

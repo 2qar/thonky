@@ -105,13 +105,17 @@ class Bot(discord.Client):
 			await self.send_message("Invalid command: no player/day given.")
 		elif len(split_msg) == 3:
 			player_name = split_msg[1]
-			given_day = split_msg[2].lower()
+			# target could be a day or avg
+			target = split_msg[2].lower()
 			player = self.get_player_by_name(player_name)
 			if player != None:
-				if given_day == "tomorrow" or given_day == "today":
+				if target == "tomorrow" or target == "today":
 					schedule_embed = Formatter.get_player_on_day(player, day, start)
 					await self.send_message(message.channel, embed=schedule_embed)
 					return
+				elif target == "avg" or target == "average":
+					# get the averages for a player
+					pass
 				else:
 					await self.send_message(message.channel, "Invalid time given.")
 			else:

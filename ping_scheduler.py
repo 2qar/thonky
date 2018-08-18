@@ -11,6 +11,7 @@ class PingScheduler():
 
 	remind_intervals = [15, 5]
 	update_interval = 30
+	player_data_save_time = 10 # 24 hr time on Sunday each week
 
 	def __init__(self):
 		self.scheduler = AsyncIOScheduler()
@@ -20,7 +21,7 @@ class PingScheduler():
 		today = datetime.date.today()
 		beginning_of_week = today - datetime.timedelta(days=today.weekday())
 		sunday = beginning_of_week + datetime.timedelta(days=6)
-		grab_player_time = datetime.datetime.combine(sunday, datetime.time(23))
+		grab_player_time = datetime.datetime.combine(sunday, datetime.time(PingScheduler.player_data_save_time))
 		self.scheduler.add_job(sheetscraper.get_players, 'date', run_date=grab_player_time)
 
 	def init_auto_update(self, bot):
