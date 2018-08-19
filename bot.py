@@ -27,13 +27,13 @@ class Bot(discord.Client):
 			self.scheduler = PingScheduler()
 			self.scanning = False
 			self.scheduler.init_auto_update(self)
-			self.scheduler.init_schedule_pings(self, self.week_schedule)
 			self.scheduler.init_save_player_data(self.scraper)
-			self.run(test_token)
+			self.run(main_token)
 	
 	async def on_ready(self):
 		playing = discord.Game(name="with spreadsheets", url=Formatter.sheet_url, type=1)
 		await self.change_presence(game=playing)
+		self.scheduler.init_schedule_pings(self)
 		print("Ready! :)")
 		
 	async def on_message(self, message):
@@ -114,8 +114,8 @@ class Bot(discord.Client):
 					await self.send_message(message.channel, embed=schedule_embed)
 					return
 				elif target == "avg" or target == "average":
-					# get the averages for a player
-					pass
+					average_embed = Formatter.get_player_averages(player.name)
+					await self.send_message(message.channel, embed=average_embed)
 				else:
 					await self.send_message(message.channel, "Invalid time given.")
 			else:

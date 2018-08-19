@@ -1,6 +1,7 @@
 from discord import Embed
 from players import Player
 from sheetbot import StatusEmotes
+from player_saver import DataAnalyzer
 import calendar
 import datetime
 
@@ -73,6 +74,20 @@ class Formatter():
 		for key in formatted_data:
 			embed.add_field(name=key, value=formatted_data[key], inline=False)
 
+		return embed
+
+	def get_player_averages(player_name):
+		embed = Formatter.get_template_embed()
+		embed.set_author(name="Average Responses for " + player_name)
+		responses = DataAnalyzer.get_response_percents(player_name)
+
+		embed_str = ""
+		for response in responses:
+			emote = StatusEmotes[response].value
+			embed_str += "{0} {1}: {2}\n".format(emote, response, responses[response])
+
+		embed.add_field(name="Responses", value=embed_str, inline=False)
+		embed.set_footer(text="")
 		return embed
 
 	def get_hour_schedule(players, week_schedule, day, hour, start_time):

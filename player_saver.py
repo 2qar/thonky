@@ -23,6 +23,12 @@ class PlayerSaver():
 
 class DataAnalyzer():
 	def get_player_responses(player_name):
+		try:
+			os.listdir("players/")
+		except:
+			print("No player data folder")
+			return
+
 		player_folder = None
 		for player in os.listdir("players/"):
 			if player_name.lower() == player.lower():
@@ -44,7 +50,7 @@ class DataAnalyzer():
 
 		return data
 
-	def get_response_counts(player_name):
+	def get_response_percents(player_name):
 		data = DataAnalyzer.get_player_responses(player_name)
 		if data == None: return None
 
@@ -61,10 +67,10 @@ class DataAnalyzer():
 				for response in data[week][day]:
 					response_counts[response] += 1
 
+		# format the counts into percents
 		for response in response_counts:
 			percent = round(response_counts[response] / 42.0, 2)
 			formatted_percent = int(percent * 100)
-			print("{0}: {1}%".format(response, formatted_percent))
+			response_counts[response] = "{}%".format(formatted_percent)
 
-for player in os.listdir("players/"):
-	DataAnalyzer.get_response_counts(player)
+		return response_counts
