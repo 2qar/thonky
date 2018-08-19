@@ -1,6 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 from formatter import Formatter
+from player_saver import PlayerSaver
 
 class PingScheduler():
 	server = '438922759372800000'
@@ -17,12 +18,19 @@ class PingScheduler():
 		self.scheduler = AsyncIOScheduler()
 		self.scheduler.start()
 
-	def init_save_player_data(self, sheetscraper):
-		today = datetime.date.today()
-		beginning_of_week = today - datetime.timedelta(days=today.weekday())
-		sunday = beginning_of_week + datetime.timedelta(days=6)
+	#TODO: Make this recursively call itself and run every Sunday
+	def init_save_player_data(self, bot, sunday=None):
+		# gets Sunday first time this method is called or gets next Sunday from previous Sunday given
+		if sunday == None:
+			today = datetime.date.today()
+			beginning_of_week = today - datetime.timedelta(days=today.weekday())
+			sunday = beginning_of_week + datetime.timedelta(days=6)
+		else:
+			sunday += datetime.timedelta(days=7)
+
 		grab_player_time = datetime.datetime.combine(sunday, datetime.time(PingScheduler.player_data_save_time))
-		self.scheduler.add_job(sheetscraper.get_players, 'date', run_date=grab_player_time)
+		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=grab_player_time, args=[bot.players, bot.week_schedule])
+		self.scheduler.add_job(self.init_save_player_data, 'date', run_date = grab_player_time, args=[bot.scraper, sunday])
 
 	def init_auto_update(self, bot):
 		self.scheduler.add_job(bot.update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")

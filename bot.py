@@ -27,7 +27,7 @@ class Bot(discord.Client):
 			self.scheduler = PingScheduler()
 			self.scanning = False
 			self.scheduler.init_auto_update(self)
-			self.scheduler.init_save_player_data(self.scraper)
+			self.scheduler.init_save_player_data(self)
 			self.run(main_token)
 	
 	async def on_ready(self):
