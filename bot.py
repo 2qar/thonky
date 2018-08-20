@@ -14,25 +14,28 @@ import pytz
 from ping_scheduler import PingScheduler
 from player_saver import PlayerSaver
 
+#TODO: Move this to its own file so this file doesnt have to import yaml and sys and wont have this
 def main():
-	config = yaml.safe_load(open("config.yaml"))
+	config_docs = [doc for doc in yaml.safe_load_all(open('config.yaml'))]
+	config = config_docs[0]
 
+	token = None
 	if len(sys.argv) == 1:
 		print("Starting bot with main token.")
-		bot = Bot(config['tokens']['main_token'])
+		token = config['tokens']['main_token']
 	elif sys.argv[1] == 'test':
 		print("Starting bot with test token.")
-		bot = Bot(config['tokens']['test_token'])
+		token = config['tokens']['test_token']
 
-#TODO: Save player player responses to JSON every Sunday night, make command that gets averages for player responses (ex 60% Yes, 20% Maybe, 20% No)
-	#maybe make more commands using this player data
+	bot = Bot(token, config_docs[1])
+
 class Bot(discord.Client):
-	def __init__(self, token):
+	def __init__(self, token, scheduler_config):
 			super().__init__()
 			self.scraper = SheetScraper()
 			self.players = self.scraper.get_players()
 			self.week_schedule = self.scraper.get_week_schedule()
-			self.scheduler = PingScheduler()
+			self.scheduler = PingScheduler(scheduler_config)
 			self.scanning = False
 			self.scheduler.init_auto_update(self)
 			self.scheduler.init_save_player_data(self)
@@ -50,7 +53,7 @@ class Bot(discord.Client):
 			if message.content.startswith("!get"):
 				await self.check_player_command(message)
 			elif message.content.startswith("!update"):
-				await Bot.update(message.channel)
+				await self.update(message.channel)
 
 	#TODO: Add a help message for this command and all of the variants and arguments and shit
 	#TODO: Make each command its own class, each command will have an invoke() and a help() method

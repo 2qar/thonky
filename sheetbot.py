@@ -14,7 +14,6 @@ class StatusEmotes(Enum):
 	Nothing = ":ghost:"
 	
 
-#TODO: Make an object that makes getting stuff from the array of players easier
 class SheetScraper():
 	doc_key = '15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c'
 	def __init__(self):

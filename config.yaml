@@ -1,3 +1,12 @@
 tokens:
     main_token: 'NDc3NjI3MzczMDMwNzM1ODcy.DlDQeg.MRWwrnDCSmfOxsY3mq6TsWkR5sI'
     test_token: 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
+---
+save_config:
+    save_day: 'Saturday'
+    save_time: 10 # 24 hr
+
+intervals:
+    # both are in minutes
+    remind_intervals: [15, 5]
+    update_interval: 30

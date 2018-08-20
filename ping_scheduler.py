@@ -2,6 +2,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 from formatter import Formatter
 from player_saver import PlayerSaver
+import calendar
+import yaml
 
 class PingScheduler():
 	server = '438922759372800000'
@@ -10,39 +12,43 @@ class PingScheduler():
 
 	main_roster_mention = '<@&445734608135258141>'
 
-	remind_intervals = [15, 5]
-	update_interval = 30
 	player_data_save_time = 10 # 24 hr time on Sunday each week
 
-	def __init__(self):
+	def __init__(self, config):
+		self.config = config
 		self.scheduler = AsyncIOScheduler()
 		self.scheduler.start()
+		self.save_day_num = list(calendar.day_name).index(self.config['save_config']['save_day'].title())
 
-	def init_save_player_data(self, bot, sunday=None):
-		# gets Sunday first time this method is called or gets next Sunday from previous Sunday given
-		if sunday == None:
+	def init_save_player_data(self, bot, save_day=None):
+		save_time = self.config['save_config']['save_time']
+
+		# gets save day first time this method is called or gets next save day from previous save day given
+		if save_day == None:
 			today = datetime.date.today()
-			beginning_of_week = today - datetime.timedelta(days=today.weekday())
-			sunday = beginning_of_week + datetime.timedelta(days=6)
+			monday = today - datetime.timedelta(days=today.weekday())
+			save_day = monday + datetime.timedelta(days=self.save_day_num)
 		else:
-			sunday += datetime.timedelta(days=7)
+			save_day += datetime.timedelta(days=self.save_day_num + 1)
 
 		today = datetime.datetime.today()
-		automated_save_missed = today.weekday() == 6 and today.hour >= PingScheduler.player_data_save_time
+		automated_save_missed = today.weekday() == self.save_day_num and today.hour >= save_time
 		run_time = None
-		save_time_as_date = datetime.time(PingScheduler.player_data_save_time)
+		save_time_as_date = datetime.time(save_time)
 		if automated_save_missed:
 			PlayerSaver.save_players(bot.players, bot.week_schedule)
-			next_sunday = today + datetime.timedelta(days=7)
-			run_time = datetime.datetime.combine(next_sunday, save_time_as_date)
+			next_save_day = today + datetime.timedelta(days=self.save_day_num)
+			run_time = datetime.datetime.combine(next_save_day, save_time_as_date)
 		else:
-			run_time = datetime.datetime.combine(sunday, save_time_as_date)
+			run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
 		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[bot.players, bot.week_schedule])
-		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[bot.scraper, sunday])
+		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[bot.scraper, save_day])
+		self.scheduler.print_jobs()
 
 	def init_auto_update(self, bot):
-		self.scheduler.add_job(bot.update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")
+		update_interval = self.config['intervals']['update_interval']
+		self.scheduler.add_job(bot.update, 'interval', minutes=update_interval, id="update_schedule")
 	
 	def init_schedule_pings(self, bot):
 		channel = None
@@ -83,7 +89,7 @@ class PingScheduler():
 					activity = day.activities[activity_time]
 					if activity != "Free" and activity != "TBD":
 						# schedule pings 15 and 5 minutes before first activity of day
-						for interval in PingScheduler.remind_intervals:
+						for interval in self.config['intervals']['remind_intervals']:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
 							ping_string = "{0} {1} in {2} minutes".format(PingScheduler.main_roster_mention, activity, interval)
 							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)
