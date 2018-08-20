@@ -1,6 +1,7 @@
 import discord
 import asyncio
-import traceback
+import yaml
+import sys
 
 from players import Player
 from sheetbot import SheetScraper
@@ -13,13 +14,20 @@ import pytz
 from ping_scheduler import PingScheduler
 from player_saver import PlayerSaver
 
-main_token = 'NDc3NjI3MzczMDMwNzM1ODcy.DlDQeg.MRWwrnDCSmfOxsY3mq6TsWkR5sI'
-test_token = 'NDY4MDg0NjExOTgxNzcwNzU3.DlDRLg.ymoPR53jRHqujSNGfZ0tBwf4w64'
+def main():
+	config = yaml.safe_load(open("config.yaml"))
+
+	if len(sys.argv) == 1:
+		print("Starting bot with main token.")
+		bot = Bot(config['tokens']['main_token'])
+	elif sys.argv[1] == 'test':
+		print("Starting bot with test token.")
+		bot = Bot(config['tokens']['test_token'])
 
 #TODO: Save player player responses to JSON every Sunday night, make command that gets averages for player responses (ex 60% Yes, 20% Maybe, 20% No)
 	#maybe make more commands using this player data
 class Bot(discord.Client):
-	def __init__(self):
+	def __init__(self, token):
 			super().__init__()
 			self.scraper = SheetScraper()
 			self.players = self.scraper.get_players()
@@ -28,7 +36,7 @@ class Bot(discord.Client):
 			self.scanning = False
 			self.scheduler.init_auto_update(self)
 			self.scheduler.init_save_player_data(self)
-			self.run(main_token)
+			self.run(token)
 	
 	async def on_ready(self):
 		playing = discord.Game(name="with spreadsheets", url=Formatter.sheet_url, type=1)
@@ -47,6 +55,7 @@ class Bot(discord.Client):
 	#TODO: Add a help message for this command and all of the variants and arguments and shit
 	#TODO: Make each command its own class, each command will have an invoke() and a help() method
 		#maybe make an abstract command class
+	#TODO: pls find a way to clean this up because this hurts to look at
 	async def check_player_command(self, message):
 		content = message.content
 		print(content)
@@ -137,9 +146,8 @@ class Bot(discord.Client):
 							await self.send_message(message.channel, embed=Formatter.get_hour_schedule(self.players, self.week_schedule, day, given_day, start))
 						else:
 							await self.send_message(message.channel, embed=Formatter.get_hour_schedule(self.players, self.week_schedule, target, given_day, start))
-					except Exception as e:
+					except:
 						await self.send_message(message.channel, "Invalid time or day. {}".format(e))
-						traceback.print_exc()
 				else:
 						try:
 							await self.send_message(message.channel, Formatter.get_player_at_time(player, Bot.get_today_name(), given_day, start))
@@ -193,7 +201,7 @@ class Bot(discord.Client):
 		self.scraper.authenticate()
 		self.players = self.scraper.get_players()
 		self.week_schedule = self.scraper.get_week_schedule()
-		self.scheduler.init_schedule_pings(self, self.week_schedule)
+		self.scheduler.init_schedule_pings(self)
 
 		if should_send_messages: 
 			await self.send_message(channel, "Rescanned sheet.")
@@ -204,4 +212,5 @@ class Bot(discord.Client):
 			if player.name.lower() == name.lower():
 				return player
 
-bot = Bot()
+if __name__ == "__main__":
+	main()

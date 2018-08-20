@@ -9,6 +9,7 @@ import datetime
 class Formatter():
 	zone = "PDT"
 
+	#TODO: Move all of this emote stuff to a config file so it's readable and doesn't take up all this space
 	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
 
 	activity_emotes = {
@@ -204,6 +205,8 @@ class Formatter():
 		return [Formatter.get_day_schedule(players, day) for day in days]
 
 	def get_formatted_activity_name(activity):
+		if activity == '':
+			return ":grey_question:"
 		try:
 			return Formatter.activity_emotes[activity]
 		except:

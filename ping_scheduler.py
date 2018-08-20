@@ -18,7 +18,6 @@ class PingScheduler():
 		self.scheduler = AsyncIOScheduler()
 		self.scheduler.start()
 
-	#TODO: Make this recursively call itself and run every Sunday
 	def init_save_player_data(self, bot, sunday=None):
 		# gets Sunday first time this method is called or gets next Sunday from previous Sunday given
 		if sunday == None:
@@ -28,9 +27,19 @@ class PingScheduler():
 		else:
 			sunday += datetime.timedelta(days=7)
 
-		grab_player_time = datetime.datetime.combine(sunday, datetime.time(PingScheduler.player_data_save_time))
-		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=grab_player_time, args=[bot.players, bot.week_schedule])
-		self.scheduler.add_job(self.init_save_player_data, 'date', run_date = grab_player_time, args=[bot.scraper, sunday])
+		today = datetime.datetime.today()
+		automated_save_missed = today.weekday() == 6 and today.hour >= PingScheduler.player_data_save_time
+		run_time = None
+		save_time_as_date = datetime.time(PingScheduler.player_data_save_time)
+		if automated_save_missed:
+			PlayerSaver.save_players(bot.players, bot.week_schedule)
+			next_sunday = today + datetime.timedelta(days=7)
+			run_time = datetime.datetime.combine(next_sunday, save_time_as_date)
+		else:
+			run_time = datetime.datetime.combine(sunday, save_time_as_date)
+
+		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[bot.players, bot.week_schedule])
+		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[bot.scraper, sunday])
 
 	def init_auto_update(self, bot):
 		self.scheduler.add_job(bot.update, 'interval', minutes=PingScheduler.update_interval, id="update_schedule")
@@ -39,8 +48,8 @@ class PingScheduler():
 		channel = None
 		try:
 			channel = bot.get_server(PingScheduler.server).get_channel(PingScheduler.announce_channel)
-		except:
-			print("couldn't grab server to ping people in, probably using wrong token or this function is being called before the bot is ready")
+		except Exception as e:
+			print("couldn't grab server to ping people in, probably using wrong token or this function is being called before the bot is ready: ", e)
 			return
 
 		# get the date of the first day of this week
@@ -80,5 +89,14 @@ class PingScheduler():
 							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)
 							self.scheduler.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
 						break
+
+				# open division pings
+				is_weekend = day_index >= 5
+				if is_weekend:
+					ping_string = "{} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes".format(PingScheduler.main_roster_mention)
+					# run at 10:30 AM
+					run_time = datetime.datetime.combine(date, datetime.time(10, 30))
+					id_str = day.get_formatted_name() + "_open_division"
+					self.scheduler.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
 
 		self.scheduler.print_jobs()
