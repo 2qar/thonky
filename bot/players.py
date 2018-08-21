@@ -1,4 +1,4 @@
-from day import Day
+from .day import Day
 
 class Player():
 	def __init__(self, name, role, availability):

@@ -1,9 +1,10 @@
-from discord import Embed
-from players import Player
-from sheetbot import StatusEmotes
-from player_saver import DataAnalyzer
 import calendar
 import datetime
+from discord import Embed
+
+from .players import Player
+from .sheetbot import StatusEmotes
+from .player_saver import DataAnalyzer
 
 #TODO: Make this instanceable
 class Formatter():

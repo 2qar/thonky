@@ -1,11 +1,12 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from enum import Enum
-from players import Player
-from players import Players
-from day import Day
-from schedules import DaySchedule
-from schedules import WeekSchedule
+
+from .players import Player
+from .players import Players
+from .day import Day
+from .schedules import DaySchedule
+from .schedules import WeekSchedule
 
 class StatusEmotes(Enum):
 	Yes = ":white_check_mark:"
@@ -22,7 +23,7 @@ class SheetScraper():
 	def authenticate(self):
 		print("Authenticating Google API...")
 		scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-		credentials = ServiceAccountCredentials.from_json_keyfile_name('Scrim Schedule Bot-f210d5f93412.json', scope)
+		credentials = ServiceAccountCredentials.from_json_keyfile_name('bot/Scrim Schedule Bot-f210d5f93412.json', scope)
 		self.gc = gspread.authorize(credentials)
 		print("Authenticated.")
 

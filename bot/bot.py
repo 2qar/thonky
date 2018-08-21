@@ -1,33 +1,17 @@
 import discord
 import asyncio
-import yaml
-import sys
-
-from players import Player
-from sheetbot import SheetScraper
-from formatter import Formatter
-from timezonehelper import TimezoneHelper
 import calendar
 import datetime
-from pytz import timezone
 import pytz
-from ping_scheduler import PingScheduler
-from player_saver import PlayerSaver
+from pytz import timezone
 
-#TODO: Move this to its own file so this file doesnt have to import yaml and sys and wont have this
-def main():
-	config_docs = [doc for doc in yaml.safe_load_all(open('config.yaml'))]
-	config = config_docs[0]
+from .players import Player
+from .sheetbot import SheetScraper
+from .formatter import Formatter
+from .timezonehelper import TimezoneHelper
+from .ping_scheduler import PingScheduler
+from .player_saver import PlayerSaver
 
-	token = None
-	if len(sys.argv) == 1:
-		print("Starting bot with main token.")
-		token = config['tokens']['main_token']
-	elif sys.argv[1] == 'test':
-		print("Starting bot with test token.")
-		token = config['tokens']['test_token']
-
-	bot = Bot(token, config_docs[1])
 
 class Bot(discord.Client):
 	def __init__(self, token, scheduler_config):
