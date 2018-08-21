@@ -5,6 +5,7 @@ import yaml
 
 from .formatter import Formatter
 from .player_saver import PlayerSaver
+from bot.commands.update_command import UpdateCommand
 
 class PingScheduler():
 	server = '438922759372800000'
@@ -49,7 +50,7 @@ class PingScheduler():
 
 	def init_auto_update(self, bot):
 		update_interval = self.config['intervals']['update_interval']
-		self.scheduler.add_job(bot.update, 'interval', minutes=update_interval, id="update_schedule")
+		self.scheduler.add_job(UpdateCommand.invoke, 'interval', minutes=update_interval, args=[bot], id="update_schedule")
 	
 	def init_schedule_pings(self, bot):
 		channel = None
