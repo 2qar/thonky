@@ -89,7 +89,7 @@ class PingScheduler():
 					# 16 = 4 PM PST
 					time = activity_time + 16
 					activity = day.activities[activity_time]
-					if activity != "Free" and activity != "TBD":
+					if not activity in self.config['remind_config']['non_reminder_activities']:
 						# schedule pings 15 and 5 minutes before first activity of day
 						for interval in self.config['intervals']['remind_intervals']:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)

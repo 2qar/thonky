@@ -83,9 +83,11 @@ class GetInfoCommand():
 					await bot.send_message(message.channel, "Invalid time given.")
 			elif player_name == "od":
 				try:
+					wait_message = await bot.send_message(message.channel, "Grabbing match info...")
 					od_embed = Formatter.get_enemy_team_info(target)
+					await bot.delete_message(wait_message)
 					await bot.send_message(message.channel, embed=od_embed)
-				except Exception as e:
+				except:
 					await bot.send_message(message.channel, "Invalid round given. {}".format(e))
 			else:
 				await bot.send_message(message.channel, "Invalid player given.")

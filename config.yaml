@@ -10,3 +10,7 @@ intervals:
     # both are in minutes
     remind_intervals: [15, 5]
     update_interval: 30
+
+remind_config:
+    # activites that people won't get pinged for
+    non_reminder_activites: ['Free', 'TBD', 'Player VOD']
