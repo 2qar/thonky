@@ -5,6 +5,7 @@ from discord import Embed
 from .players import Player
 from .sheetbot import StatusEmotes
 from .player_saver import DataAnalyzer
+from .odscraper import get_other_team_info
 
 #TODO: Make this instanceable
 class Formatter():
@@ -25,6 +26,16 @@ class Formatter():
 		"Flex": ":muscle:",
 		"Coaches": ":books:"
 	}
+
+	overbuff_role_emotes = {
+		"Offense": ":crossed_swords:",
+		"Defense": ":crossed_swords:",
+		"Tank": ":shield:",
+		"Support": ":ambulance:",
+		"???": ":ghost:"
+	}
+
+	battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
 
 	role_status_emotes = [":warning:", ":warning:", ":ballot_box_with_check:", ":ballot_box_with_check:"] 
 
@@ -147,6 +158,50 @@ class Formatter():
 
 		return embed
 
+	def get_enemy_team_info(od_round):
+		team_info = get_other_team_info(od_round)
+
+		title = "Match against {} in Round {}".format(team_info['name'], od_round)
+		embed = Embed()
+		embed.set_author(name=title, url=team_info['match_link'], icon_url=Formatter.battlefy_logo)
+
+		embed.set_thumbnail(url=team_info['logo'])
+		
+		def get_sorted_players():
+			players_with_info = [player for player in team_info['players'] if not isinstance(player['info'], str)]
+			return sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
+
+		players = get_sorted_players()
+
+		def format_player_info(player):
+			if isinstance(player['info'], str):
+				return ":ghost: " + player['name']
+			else:
+				role_emote = Formatter.overbuff_role_emotes[player['info']['role']]
+				return "{} {}: {}".format(role_emote, player['name'], player['info']['sr'])
+
+		player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
+
+		def get_top_average():
+			top_players = players[:6]
+
+			avg = 0
+			for player in top_players:
+				avg += player['info']['sr']
+
+			return int(avg / len(top_players))
+
+		if len(players) >= 6:
+			average_sr = "**Average SR: {}**\n".format(team_info['sr_avg'])
+			player_string = average_sr + player_string
+			
+			top_average = "Top 6 Average: {}".format(get_top_average())
+			embed.add_field(name=top_average, value=player_string)
+		else:
+			embed.add_field(name="Average SR: {}".format(team_info['sr_avg']), value=player_string)
+
+		return embed
+
 	def get_week_activity_schedule(week_schedule, start_time):
 		embed = Formatter.get_template_embed()
 		Formatter.add_time_field(embed, "Times", start_time)
@@ -154,17 +209,19 @@ class Formatter():
 		week = week_schedule.days[0].date
 		embed.set_author(name="Week of " + week)
 
+		def get_formatted_activity_name(activity):
+			if activity == '':
+				return ":grey_question:"
+			try:
+				return Formatter.activity_emotes[activity]
+			except:
+				return ':regional_indicator_{0}:'.format(activity[:1].lower())
+
 		for day in week_schedule.days:
 			title = day.get_formatted_name()
 
 			# format all of the activities into one nice and pretty string
-			formatted_activities = ""
-			for activity in range(0, len(day.activities) - 1):
-				act = day.activities[activity]
-				formatted_activity_name = Formatter.get_formatted_activity_name(act)
-				formatted_activities += formatted_activity_name + ", "
-			last_activity = day.activities[len(day.activities) - 1]
-			formatted_activities += Formatter.get_formatted_activity_name(last_activity)
+			formatted_activities = ', '.join([get_formatted_activity_name(activity) for activity in day.activities])
 
 			embed.add_field(name=title, value=formatted_activities, inline=False)
 
@@ -183,10 +240,7 @@ class Formatter():
 
 			emote_count = [Formatter.letter_emotes[value] for value in count]
 
-			schedule_string = ""
-			for value in range(0, len(emote_count) - 1):
-				schedule_string += emote_count[value] + ", "
-			schedule_string += emote_count[len(emote_count) - 1]
+			schedule_string = ", ".join([emote for emote in emote_count])
 
 			title = Formatter.role_emotes[role] + " " + role
 			embed.add_field(name=title, value=schedule_string, inline=False)
@@ -204,15 +258,6 @@ class Formatter():
 	def get_week_schedule(players):
 		days = list(calendar.day_name)
 		return [Formatter.get_day_schedule(players, day) for day in days]
-
-	def get_formatted_activity_name(activity):
-		if activity == '':
-			return ":grey_question:"
-		try:
-			return Formatter.activity_emotes[activity]
-		except:
-			return ':regional_indicator_{0}:'.format(activity[:1].lower())
-
 
 	def format_player_name(player):
 		return Formatter.role_emotes[player.role] + " " + player.name 

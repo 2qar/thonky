@@ -13,7 +13,8 @@ class GetInfoCommand():
 		content = message.content
 		print(content)
 		print(content.split())
-		day = GetInfoCommand.get_today_name()
+		# get the name of today
+		day = calendar.day_name[datetime.date.today().weekday()]
 		start = 4
 		Formatter.zone = "PDT"
 
@@ -80,6 +81,12 @@ class GetInfoCommand():
 					await bot.send_message(message.channel, embed=average_embed)
 				else:
 					await bot.send_message(message.channel, "Invalid time given.")
+			elif player_name == "od":
+				try:
+					od_embed = Formatter.get_enemy_team_info(target)
+					await bot.send_message(message.channel, embed=od_embed)
+				except Exception as e:
+					await bot.send_message(message.channel, "Invalid round given. {}".format(e))
 			else:
 				await bot.send_message(message.channel, "Invalid player given.")
 		#TODO: Add "!get today at [time]" and "!get tomorrow at [time]"
@@ -134,10 +141,6 @@ class GetInfoCommand():
 
 	async def help(bot, channel):
 		pass
-
-	def get_today_name():
-		day_int = datetime.date.today().weekday()
-		return calendar.day_name[day_int]
 
 	def get_player_by_name(bot, name):
 		for player in bot.players.unsorted_list:
