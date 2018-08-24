@@ -5,7 +5,6 @@ from discord import Embed
 from .players import Player
 from .sheetbot import StatusEmotes
 from .player_saver import DataAnalyzer
-from .odscraper import get_other_team_info
 
 #TODO: Make this instanceable
 class Formatter():
@@ -158,8 +157,8 @@ class Formatter():
 
 		return embed
 
-	def get_enemy_team_info(od_round):
-		team_info = get_other_team_info(od_round)
+	def get_enemy_team_info(od_round, team_info):
+		#team_info = get_other_team_info(od_round)
 
 		title = "Match against {} in Round {}".format(team_info['name'], od_round)
 		embed = Embed()

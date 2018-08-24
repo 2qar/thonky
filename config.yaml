@@ -13,4 +13,4 @@ intervals:
 
 remind_config:
     # activites that people won't get pinged for
-    non_reminder_activites: ['Free', 'TBD', 'Player VOD']
+    non_reminder_activities: ['Free', 'TBD', 'Player VOD']

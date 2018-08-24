@@ -6,6 +6,7 @@ from pytz import timezone
 
 from bot.timezonehelper import TimezoneHelper
 from bot.formatter import Formatter
+from bot.odscraper import get_other_team_info
 
 #TODO: Make help method
 class GetInfoCommand():
@@ -84,11 +85,12 @@ class GetInfoCommand():
 			elif player_name == "od":
 				try:
 					wait_message = await bot.send_message(message.channel, "Grabbing match info...")
-					od_embed = Formatter.get_enemy_team_info(target)
+					team_info = await get_other_team_info(target)
+					od_embed = Formatter.get_enemy_team_info(target, team_info)
 					await bot.delete_message(wait_message)
 					await bot.send_message(message.channel, embed=od_embed)
 				except:
-					await bot.send_message(message.channel, "Invalid round given. {}".format(e))
+					await bot.send_message(message.channel, "Invalid round given.")
 			else:
 				await bot.send_message(message.channel, "Invalid player given.")
 		#TODO: Add "!get today at [time]" and "!get tomorrow at [time]"
