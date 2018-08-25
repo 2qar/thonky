@@ -105,6 +105,8 @@ async def get_team_info(persistent_team_id):
 		else:
 			return str(request.status)
 
+	return team_info
+
 def get_team_id(team):
 	# try here because apparently there can be matches where one of the teams just doesnt exist
 	try:

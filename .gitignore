@@ -1,3 +1,5 @@
 players/
 *.swp
 __pycache__/
+*.sh
+*.pid
