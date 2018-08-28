@@ -8,7 +8,7 @@ save_config:
 
 intervals:
     # both are in minutes
-    remind_intervals: [15, 5]
+    remind_intervals: [45, 15]
     update_interval: 30
 
 remind_config:

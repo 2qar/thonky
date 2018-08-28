@@ -3,6 +3,7 @@ import calendar
 import datetime
 import pytz
 from pytz import timezone
+import random
 
 from bot.timezonehelper import TimezoneHelper
 from bot.formatter import Formatter
@@ -12,8 +13,15 @@ from bot.odscraper import get_other_team_info
 class GetInfoCommand():
 	async def invoke(bot, message):
 		content = message.content
+
 		print(content)
 		print(content.split())
+
+		if content.lower() == '!get superior hog':
+			superior_hog = ['ADS', 'Tydra'][random.randrange(0, 2)]
+			await bot.send_message(message.channel, superior_hog)
+			return
+
 		# get the name of today
 		day = calendar.day_name[datetime.date.today().weekday()]
 		start = 4
