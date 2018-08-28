@@ -19,49 +19,47 @@ async def get_ow_player_info(name):
 	name = name.replace('#', '-')
 	user_agent = {'User-agent': 'OpenDivisionBot'}
 	link = 'https://www.overbuff.com/players/pc/{}'.format(name)
-	async with aiohttp.ClientSession() as session:
-		async with session.get(link, headers=user_agent) as info:
-			if info.status != 200: return str(info.status)
+	async with aiohttp.request('GET', link, headers=user_agent) as info:
+		if info.status != 200: return str(info.status)
 
-			soup = BeautifulSoup(await info.text(), 'html.parser')
+		soup = BeautifulSoup(await info.text(), 'html.parser')
 
-			def get_sr():
-				skill_rating = soup.find(class_="player-skill-rating")
-				if skill_rating == None: return 0
-				return int(skill_rating.contents[0])
+		def get_sr():
+			skill_rating = soup.find(class_="player-skill-rating")
+			if skill_rating == None: return 0
+			return int(skill_rating.contents[0])
 
-			def get_role():
-				roles_container = soup.find(class_="table-data")
-				if roles_container == None: return '???'
+		def get_role():
+			roles_container = soup.find(class_="table-data")
+			if roles_container == None: return '???'
 
-				roles = roles_container.contents[1]
+			roles = roles_container.contents[1]
 
-				highest_wins = 0
-				best_role = None
-				for role in roles.contents:
-					wins = int(role.contents[2].attrs['data-value'])
+			highest_wins = 0
+			best_role = None
+			for role in roles.contents:
+				wins = int(role.contents[2].attrs['data-value'])
 
-					role_name_container = role.contents[1]
-					role_name = role_name_container.contents[0].string
+				role_name_container = role.contents[1]
+				role_name = role_name_container.contents[0].string
 
-					if wins > highest_wins:
-						highest_wins = wins
-						best_role = role_name
+				if wins > highest_wins:
+					highest_wins = wins
+					best_role = role_name
 
-				return best_role
-							
-			sr = get_sr()
-			role = get_role()
+			return best_role
+						
+		sr = get_sr()
+		role = get_role()
 
-			if sr == 0 and role == '???': return "404"
+		if sr == 0 and role == '???': return "404"
 
-			return {'sr': sr, 'role': role}
+		return {'sr': sr, 'role': role}
 
 
 async def get_player_info(player_json, owner=False):
 	user = None
-	if not owner: user = player_json['user'] 
-	else: user = player_json
+	user = player_json['user'] if not owner else player_json
 
 	player_info = {}
 	player_info['name'] = user['username']
@@ -78,7 +76,7 @@ async def get_player_info(player_json, owner=False):
 async def get_team_info(persistent_team_id):
 	curr_link = team_link + persistent_team_id
 	team_info = None
-	async with aiohttp.ClientSession().get(curr_link) as request:
+	async with aiohttp.request('GET', curr_link) as request:
 		if request.status == 200:
 			data = await request.json()
 			data = data[0]
@@ -117,16 +115,15 @@ def get_team_id(team):
 async def get_match(od_round):
 	matches = 'https://dtmwra1jsgyb0.cloudfront.net/stages/5b74a1b106dda6039a96e712/rounds/{}/matches'.format(od_round)
 
-	async with aiohttp.ClientSession() as session:
-		async with session.get(matches) as request:
-			if request.status == 404: raise LinkNotFoundException("Unable to get match in round {}.".format(od_round))
+	async with aiohttp.request('GET', matches) as request:
+		if request.status == 404: raise LinkNotFoundException("Unable to get match in round {}.".format(od_round))
 
-			matches_json = await request.json()
+		matches_json = await request.json()
 
-			for match in matches_json:
-				for key in ['top', 'bottom']:
-					if get_team_id(match[key]) == fwb_id:
-						return match
+		for match in matches_json:
+			for key in ['top', 'bottom']:
+				if get_team_id(match[key]) == fwb_id:
+					return match
 
 # import this method into formatter
 async def get_other_team_info(od_round):
