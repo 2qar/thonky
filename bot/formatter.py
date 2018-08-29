@@ -6,48 +6,55 @@ from .players import Player
 from .sheetbot import StatusEmotes
 from .player_saver import DataAnalyzer
 
+letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
+
+activity_emotes = {
+	"Free": ":free:",
+	"TBD": ":grey_question:"
+}
+
+role_emotes = {
+	"Tanks": ":shield:",
+	"DPS": ":crossed_swords:",
+	"Supports": ":ambulance:",
+	"Flex": ":muscle:",
+	"Coaches": ":books:"
+}
+
+overbuff_role_emotes = {
+	"Offense": role_emotes['DPS'],
+	"Defense": role_emotes['DPS'],
+	"Tank": role_emotes['Tanks'],
+	"Support": role_emotes['Supports'],
+	"???": ":ghost:"
+}
+
+availability_responses = {
+	"Yes": "is available",
+	"Maybe": "might be available",
+	"No": "is not available",
+	"Nothing": "has not left a response yet"
+}
+
+battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
+
+thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
+
+sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
+
+
 #TODO: Make this instanceable
 class Formatter():
 	zone = "PDT"
 
 	#TODO: Move all of this emote stuff to a config file so it's readable and doesn't take up all this space
-	letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
-
-	activity_emotes = {
-		"Free": ":free:",
-		"TBD": ":grey_question:"
-	}
-
-	role_emotes = {
-		"Tanks": ":shield:",
-		"DPS": ":crossed_swords:",
-		"Supports": ":ambulance:",
-		"Flex": ":muscle:",
-		"Coaches": ":books:"
-	}
-
-	overbuff_role_emotes = {
-		"Offense": ":crossed_swords:",
-		"Defense": ":crossed_swords:",
-		"Tank": ":shield:",
-		"Support": ":ambulance:",
-		"???": ":ghost:"
-	}
-
-	battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
-
-	role_status_emotes = [":warning:", ":warning:", ":ballot_box_with_check:", ":ballot_box_with_check:"] 
-
-	thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
-
-	sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
-
+	
 	def get_template_embed():
 		embed = Embed()
 		embed.title = "Link to Spreadsheet"
-		embed.url = Formatter.sheet_url
-		embed.set_footer(text="Times shown in {0}".format(Formatter.zone))
-		embed.set_thumbnail(url=Formatter.thonk_link)
+		embed.url = sheet_url
+		embed.set_footer(text=f"Times shown in {Formatter.zone}")
+		embed.set_thumbnail(url=thonk_link)
 		return embed
 
 	# spits back the player's availability in emotes
@@ -64,23 +71,20 @@ class Formatter():
 
 	def get_player_at_time(player, day, time, start):
 		availability = player.get_availability_at_time(day, time, start)
-		availability_responses = {
-			"Yes": " is available",
-			"Maybe": " might be available",
-			"No": " is not available",
-			"Nothing": " has not left a response yet"
-		}
-		message = StatusEmotes[availability].value + " " + player.name + availability_responses[availability] + " at " + time
-		if datetime.date.today().weekday() != list(calendar.day_name).index(day):
-			message += " on " + day + "."
-		else:
-			message += "."
+
+		available_emote = StatusEmotes[availability].value
+		availabile_response = availability_responses[availability]
+
+		message = f"{availabile_emote} {player.name} {available_response} at {time}" 
+
+		day_not_today = datetime.date.today().weekday() != list(calendar.day_name).index(day)
+		message += f" on {day}." if day_not_today else "."
 		return message
 
 	def get_player_on_day(player, day, start_time):
 		embed = Formatter.get_template_embed()
-		embed.set_author(name="{0} on {1}".format(player.name, day))
-		embed.set_thumbnail(url=Formatter.thonk_link)
+		embed.set_author(name=f"{player.name} on {day}")
+		embed.set_thumbnail(url=thonk_link)
 		formatted_data = Formatter.get_day_availability(player, day, start_time)
 
 		for key in formatted_data:
@@ -93,10 +97,8 @@ class Formatter():
 		embed.set_author(name="Average Responses for " + player_name)
 		responses = DataAnalyzer.get_response_percents(player_name)
 
-		embed_str = ""
-		for response in responses:
-			emote = StatusEmotes[response].value
-			embed_str += "{0} {1}: {2}\n".format(emote, response, responses[response])
+		format_response = (lambda response: f"{StatusEmotes[response].value} {response} {responses[response]}")
+		embed_str = '\n'.join([format_response(response) for response in responses])
 
 		embed.add_field(name="Responses", value=embed_str, inline=False)
 		embed.set_footer(text="")
@@ -105,10 +107,11 @@ class Formatter():
 	def get_hour_schedule(players, week_schedule, day, hour, start_time):
 		embed = Formatter.get_template_embed()
 
+		print(day)
 		day_obj = week_schedule.get_day(day)
 		activity = day_obj.get_activity_at_time(hour, start_time)
 		format_name = day_obj.get_formatted_name()
-		title = "{0} on {1} at {2} PM".format(activity, format_name, hour)
+		title = f"{activity} on {format_name} at {hour} PM"
 		embed.set_author(name=title)
 
 		for role in players.sorted_list:
@@ -124,8 +127,10 @@ class Formatter():
 					players_string += player_str + "\n"
 				except:
 					players_string += player.name + "\t:ghost:\n"
-					print("Unable to add player {0} to {1} string".format(player.name, role))
-			role_name = Formatter.role_emotes[role] + " " + role + " " + Formatter.role_status_emotes[available_count]
+					print(f"Unable to add player {player.name} to {role} string")
+
+			role_status = ":warning:" if available_count < 2 else ":ballot_box_with_check:"
+			role_name = f"{role_emotes[role]} {role} {role_status}"
 			embed.add_field(name=role_name, value=players_string)
 
 		return embed
@@ -140,44 +145,34 @@ class Formatter():
 		for player in players.unsorted_list:
 			try:
 				availability = Formatter.get_day_availability(player, day, start_time)
-
 				status_emotes = [availability[key] for key in availability]
+				formatted_status = ', '.join([emote for emote in status_emotes])
+				player_name = f"{role_emotes[player.role]} {player.name}"
 
-				formatted_status = ""
-				for emote in range(len(status_emotes) - 1):
-					formatted_status += status_emotes[emote] + ", "
-				formatted_status += status_emotes[len(status_emotes) - 1]
-					
-				player_name = Formatter.format_player_name(player)
 				embed.add_field(name=player_name, value=formatted_status, inline=False)
-			except:
-				print("Unable to add player {0} to embed".format(player.name))
+			except Exception as reason:
+				print(f"Unable to add player {player.name} to embed: {reason}")
 
 		embed = Formatter.add_role_availability(embed, players, day)
 
 		return embed
 
 	def get_enemy_team_info(od_round, team_info):
-		#team_info = get_other_team_info(od_round)
-
-		title = "Match against {} in Round {}".format(team_info['name'], od_round)
+		title = f"Match against {team_info['name']} in Round {od_round}"
 		embed = Embed()
-		embed.set_author(name=title, url=team_info['match_link'], icon_url=Formatter.battlefy_logo)
+		embed.set_author(name=title, url=team_info['match_link'], icon_url=battlefy_logo)
 
 		embed.set_thumbnail(url=team_info['logo'])
 		
-		def get_sorted_players():
-			players_with_info = [player for player in team_info['players'] if not isinstance(player['info'], str)]
-			return sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
-
-		players = get_sorted_players()
+		players_with_info = [player for player in team_info['players'] if not isinstance(player['info'], str)]
+		players =  sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
 
 		def format_player_info(player):
 			if isinstance(player['info'], str):
 				return ":ghost: " + player['name']
 			else:
-				role_emote = Formatter.overbuff_role_emotes[player['info']['role']]
-				return "{} {}: {}".format(role_emote, player['name'], player['info']['sr'])
+				role_emote = overbuff_role_emotes[player['info']['role']]
+				return f"{role_emote} {player['name']}: {player['info']['sr']}"
 
 		player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
 
@@ -191,13 +186,13 @@ class Formatter():
 			return int(avg / len(top_players))
 
 		if len(players) >= 6:
-			average_sr = "**Average SR: {}**\n".format(team_info['sr_avg'])
+			average_sr = f"**Average SR: {team_info['sr_avg']}**\n"
 			player_string = average_sr + player_string
 			
-			top_average = "Top 6 Average: {}".format(get_top_average())
+			top_average = f"Top 6 Average: {get_top_average()}"
 			embed.add_field(name=top_average, value=player_string)
 		else:
-			embed.add_field(name="Average SR: {}".format(team_info['sr_avg']), value=player_string)
+			embed.add_field(name=f"Average SR: {team_info['sr_avg']}")
 
 		return embed
 
@@ -212,9 +207,9 @@ class Formatter():
 			if activity == '':
 				return ":grey_question:"
 			try:
-				return Formatter.activity_emotes[activity]
+				return activity_emotes[activity]
 			except:
-				return ':regional_indicator_{0}:'.format(activity[:1].lower())
+				return f':regional_indicator_{activity[0].lower()}:'
 
 		for day in week_schedule.days:
 			title = day.get_formatted_name()
@@ -237,26 +232,22 @@ class Formatter():
 					if schedule[i] == "Yes":
 						count[i] += 1
 
-			emote_count = [Formatter.letter_emotes[value] for value in count]
+			emote_count = [letter_emotes[value] for value in count]
 
 			schedule_string = ", ".join([emote for emote in emote_count])
 
-			title = Formatter.role_emotes[role] + " " + role
+			title = role_emotes[role] + " " + role
 			embed.add_field(name=title, value=schedule_string, inline=False)
-
 
 		return embed
 
 	def add_time_field(embed, title, start_time):
 		time_string = ""
 		for time in range(0, 5):
-			time_string += Formatter.letter_emotes[time + start_time] + ", "
-		time_string += Formatter.letter_emotes[5 + start_time]
+			time_string += letter_emotes[time + start_time] + ", "
+		time_string += letter_emotes[5 + start_time]
 		embed.add_field(name=title, value = time_string, inline=False)
 
 	def get_week_schedule(players):
 		days = list(calendar.day_name)
 		return [Formatter.get_day_schedule(players, day) for day in days]
-
-	def format_player_name(player):
-		return Formatter.role_emotes[player.role] + " " + player.name 

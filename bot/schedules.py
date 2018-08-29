@@ -11,11 +11,12 @@ class DaySchedule():
 		return self.activities[offset]
 
 	def get_formatted_name(self):
-		return self.name + ", " + self.date
+		return f"{self.name}, {self.date}"
 
 	def __str__(self):
-		return self.name + ", " + self.date + ": " + str(self.activities)
+		return f"{self.name}, {self.date}: {self.activities}"
 
+#TODO: Convert to iterator 
 class WeekSchedule():
 	def __init__(self, days):
 		self.days = days

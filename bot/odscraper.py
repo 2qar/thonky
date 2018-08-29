@@ -11,7 +11,7 @@ match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/20
 # raw player list: https://dtmwra1jsgyb0.cloudfront.net/tournaments/5b5e98399a8f8503cd0a07fd/participants
 #players = aiohttp.get('https://dtmwra1jsgyb0.cloudfront.net/tournaments/5b5e98399a8f8503cd0a07fd/participants').json()
 
-class LinkNotFoundException(Exception):
+class LinkNotFound(Exception):
 	"""Raised when an important link gives a status code other than 200"""
 
 #TODO: Run this with both a player's inGameName and a player's given battletag
@@ -99,7 +99,7 @@ async def get_team_info(persistent_team_id):
 			average_sr /= player_total
 			team_info['sr_avg'] = int(average_sr)
 		elif request.status == 404:
-			raise LinkNotFoundException("Team not found on Battlefy.")
+			raise LinkNotFound("Team not found on Battlefy.")
 		else:
 			return str(request.status)
 
@@ -116,7 +116,7 @@ async def get_match(od_round):
 	matches = 'https://dtmwra1jsgyb0.cloudfront.net/stages/5b74a1b106dda6039a96e712/rounds/{}/matches'.format(od_round)
 
 	async with aiohttp.request('GET', matches) as request:
-		if request.status == 404: raise LinkNotFoundException("Unable to get match in round {}.".format(od_round))
+		if request.status == 404: raise LinkNotFound(f"Unable to get match in round {od_round}.")
 
 		matches_json = await request.json()
 

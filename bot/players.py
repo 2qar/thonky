@@ -17,7 +17,7 @@ class Player():
 		return self.get_availability_for_day(day)[offset]
 
 	def __str__(self):
-		return "Name: " + self.name + "\nRole: " + self.role + "\nAvailability: " + str(self.availability)
+		return f"Name: {self.name} \nRole: {self.role} \nAvailability: {self.availability}"
 
 class Players():
 	def __init__(self, sorted_list, unsorted_list):

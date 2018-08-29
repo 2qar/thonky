@@ -7,15 +7,11 @@ from .formatter import Formatter
 from .player_saver import PlayerSaver
 from bot.commands.update_command import UpdateCommand
 
+server = '438922759372800000'
+announce_channel = '445735181295550467'
+main_roster_mention = '<@&445734608135258141>'
+
 class PingScheduler():
-	server = '438922759372800000'
-	announce_channel = '445735181295550467'
-	general = '438922759372800002'
-
-	main_roster_mention = '<@&445734608135258141>'
-
-	player_data_save_time = 10 # 24 hr time on Sunday each week
-
 	def __init__(self, config):
 		self.config = config
 		self.scheduler = AsyncIOScheduler()
@@ -55,7 +51,7 @@ class PingScheduler():
 	def init_schedule_pings(self, bot):
 		channel = None
 		try:
-			channel = bot.get_server(PingScheduler.server).get_channel(PingScheduler.announce_channel)
+			channel = bot.get_server(server).get_channel(announce_channel)
 		except Exception as e:
 			print("couldn't grab server to ping people in, probably using wrong token or this function is being called before the bot is ready: ", e)
 			return
@@ -93,7 +89,7 @@ class PingScheduler():
 						# schedule pings 15 and 5 minutes before first activity of day
 						for interval in self.config['intervals']['remind_intervals']:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
-							ping_string = "{0} {1} in {2} minutes".format(PingScheduler.main_roster_mention, activity, interval)
+							ping_string = f"{main_roster_mention} {activity} in {interval} minutes"
 							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)
 							self.scheduler.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
 						break
@@ -101,7 +97,7 @@ class PingScheduler():
 				# open division pings
 				is_weekend = day_index >= 5
 				if is_weekend:
-					ping_string = "{} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes".format(PingScheduler.main_roster_mention)
+					ping_string = "{main_roster_mention} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes"
 					# run at 10:30 AM
 					run_time = datetime.datetime.combine(date, datetime.time(10, 30))
 					id_str = day.get_formatted_name() + "_open_division"

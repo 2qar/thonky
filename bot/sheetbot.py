@@ -46,7 +46,7 @@ class SheetScraper():
 		print("(4/4) Creating player objects...")
 		for cell in player_cells:
 			if cell.value != '':
-				cells = availability.range('A{0}:AS{1}'.format(cell.row, cell.row))
+				cells = availability.range('A{0}:AS{0}'.format(cell.row))
 				vals = [val.value for val in cells]
 				if vals[1] != '':
 					role = vals[1]
@@ -82,7 +82,7 @@ class SheetScraper():
 
 			date = split[1]
 
-			row_range = "C{0}:H{1}".format(day.row, day.row)
+			row_range = "C{0}:H{0}".format(day.row)
 			activity_cells = activity_sheet.range(row_range)
 			activities = [activity.value for activity in activity_cells]
 

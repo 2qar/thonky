@@ -3,6 +3,7 @@ import asyncio
 
 from .sheetbot import SheetScraper
 from .formatter import Formatter
+from .formatter import sheet_url
 from .ping_scheduler import PingScheduler
 from .player_saver import PlayerSaver
 
@@ -22,7 +23,7 @@ class Bot(discord.Client):
 			self.run(token)
 	
 	async def on_ready(self):
-		playing = discord.Game(name="with spreadsheets", url=Formatter.sheet_url, type=1)
+		playing = discord.Game(name="with spreadsheets", url=sheet_url, type=1)
 		await self.change_presence(game=playing)
 		self.scheduler.init_schedule_pings(self)
 		print("Ready! :)")
