@@ -14,7 +14,6 @@ match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/20
 class LinkNotFound(Exception):
 	"""Raised when an important link gives a status code other than 200"""
 
-#TODO: Run this with both a player's inGameName and a player's given battletag
 async def get_ow_player_info(name):
 	name = name.replace('#', '-')
 	user_agent = {'User-agent': 'OpenDivisionBot'}
@@ -94,8 +93,9 @@ async def get_team_info(persistent_team_id):
 			player_total = 0
 			for player in players:
 				if not isinstance(player['info'], str):
-					average_sr += player['info']['sr']
-					player_total += 1
+					if player['info']['sr'] > 0:
+						average_sr += player['info']['sr']
+						player_total += 1
 			average_sr /= player_total
 			team_info['sr_avg'] = int(average_sr)
 		elif request.status == 404:

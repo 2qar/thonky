@@ -172,7 +172,9 @@ class Formatter():
 				return ":ghost: " + player['name']
 			else:
 				role_emote = overbuff_role_emotes[player['info']['role']]
-				return f"{role_emote} {player['name']}: {player['info']['sr']}"
+				sr = player['info']['sr']
+				if sr == 0: sr = '???'
+				return f"{role_emote} {player['name']}: {sr}"
 
 		player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
 
