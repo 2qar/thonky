@@ -97,7 +97,7 @@ class PingScheduler():
 				# open division pings
 				is_weekend = day_index >= 5
 				if is_weekend:
-					ping_string = "{main_roster_mention} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes"
+					ping_string = f"{main_roster_mention} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes"
 					# run at 10:30 AM
 					run_time = datetime.datetime.combine(date, datetime.time(10, 30))
 					id_str = day.get_formatted_name() + "_open_division"
