@@ -16,7 +16,7 @@ class LinkNotFound(Exception):
 
 async def get_ow_player_info(name):
 	name = name.replace('#', '-')
-	user_agent = {'User-agent': 'OpenDivisionBot'}
+	user_agent = {'User-Agent': 'OpenDivisionBot'}
 	link = 'https://www.overbuff.com/players/pc/{}'.format(name)
 	async with aiohttp.request('GET', link, headers=user_agent) as info:
 		if info.status != 200: return str(info.status)
@@ -63,11 +63,13 @@ async def get_player_info(player_json, owner=False):
 	player_info = {}
 	player_info['name'] = user['username']
 
-	battletag = user['accounts']['battlenet']['battletag']
+	battletag = None
+	try:
+		battletag = user['inGameName']
+	except:
+		battletag = user['accounts']['battlenet']['battletag']
+		
 	player_info['info'] = await get_ow_player_info(battletag)
-
-	if isinstance(player_info['info'], str) and not owner:
-		player_info['info'] = await get_ow_player_info(player_json['inGameName'])
 
 	return player_info
 

@@ -3,3 +3,4 @@ players/
 __pycache__/
 *.sh
 *.pid
+*.log
