@@ -1,6 +1,5 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from enum import Enum
 
 from .players import Player
 from .players import Players
@@ -8,31 +7,32 @@ from .day import Day
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
 
-class StatusEmotes(Enum):
-	Yes = ":white_check_mark:"
-	Maybe = ":grey_question:"
-	No = ":x:"
-	Nothing = ":ghost:"
 	
 
 class SheetScraper():
+	""" Used for interacting with the main spreadsheet """
+
 	doc_key = '15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c'
 	def __init__(self):
 		self.authenticate()
 
 	def authenticate(self):
+		""" Authenticates the bot for sheets access.
+			Gotta call it before calling any of the other stuff. """
+
 		print("Authenticating Google API...")
 		scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 		credentials = ServiceAccountCredentials.from_json_keyfile_name('bot/Scrim Schedule Bot-f210d5f93412.json', scope)
 		self.gc = gspread.authorize(credentials)
 		print("Authenticated.")
 
+	def get_sheet(self, sheet_name):
+		return self.gc.open_by_key(SheetScraper.doc_key).worksheet(sheet_name)
 
 	def get_players(self):
-		print("(1/4) Opening spreadsheet...")
-		doc = self.gc.open_by_key(SheetScraper.doc_key)
-		print("(2/4) Opening worksheet...")
-		availability = doc.worksheet('Team Availability')
+		""" Get all of the players in a nice little bundle :) """
+
+		availability = self.get_sheet("Team Availability")
 
 		print("(3/4) Getting player cells...")
 		player_range_end = availability.find("Tanks Available:").row
@@ -69,8 +69,9 @@ class SheetScraper():
 		return player_obj
 
 	def get_week_schedule(self):
-		doc = self.gc.open_by_key(SheetScraper.doc_key)
-		activity_sheet = doc.worksheet('Weekly Schedule')
+		""" Returns a week schedule object for getting the activities for each day n stuff """
+
+		activity_sheet = self.get_sheet("Weekly Schedule")
 
 		day_cols = activity_sheet.range("B3:B9")
 		days = []

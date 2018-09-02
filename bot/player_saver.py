@@ -17,6 +17,9 @@ class PlayerSaver():
 					day = key.name
 					availability[day] = player.get_availability_for_day(day)
 				print(filename)
+				if os.path.exists(filename):
+					print("\talready saved")
+					continue
 				with open(filename, 'w') as outfile:
 					json.dump(availability, outfile)
 

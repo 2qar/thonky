@@ -9,7 +9,7 @@ from bot.timezonehelper import TimezoneHelper
 from bot.formatter import Formatter
 from bot.odscraper import get_other_team_info
 
-#TODO: Make help method
+#TODO: Use discord.ext.commands instead of this garbo that's set up right now
 class GetInfoCommand():
 	async def invoke(bot, message):
 		def get_player_by_name(bot, name):
@@ -60,7 +60,7 @@ class GetInfoCommand():
 				return
 
 			try:
-				schedule_embed = Formatter.get_hour_schedule(bot.players, bot.week_schedule, day, given_day, start)
+				schedule_embed = Formatter.get_hour_schedule(bot, day, given_day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			except:
@@ -119,10 +119,8 @@ class GetInfoCommand():
 			if decider == "at":
 				if not player:
 					try:
-						if target in ['today', 'tomorrow']:
-							await bot.send_message(channel, embed=Formatter.get_hour_schedule(bot.players, bot.week_schedule, day, given_day, start))
-						else:
-							await bot.send_message(channel, embed=Formatter.get_hour_schedule(bot.players, bot.week_schedule, target, given_day, start))
+						target_day = day if target in ['today', 'tomorrow'] else target
+						await bot.send_message(channel, embed=Formatter.get_hour_schedule(bot, target_day, given_day, start))
 					except Exception as e:
 						await bot.send_message(channel, f"Invalid time or day. {e}")
 				else:

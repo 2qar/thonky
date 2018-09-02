@@ -3,7 +3,6 @@ import datetime
 from discord import Embed
 
 from .players import Player
-from .sheetbot import StatusEmotes
 from .player_saver import DataAnalyzer
 
 letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
@@ -36,6 +35,13 @@ availability_responses = {
 	"Nothing": "has not left a response yet"
 }
 
+status_emotes = {
+	"Yes": ":white_check_mark:",
+	"Maybe": ":grey_question:",
+	"No": ":x:",
+	"Nothing": ":ghost:"
+}
+
 battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
 
 thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
@@ -43,16 +49,12 @@ thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/47683785
 sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
 
 
-#TODO: Make this instanceable
 class Formatter():
 	zone = "PDT"
 
-	#TODO: Move all of this emote stuff to a config file so it's readable and doesn't take up all this space
-	
-	def get_template_embed():
+	def get_template_embed(title):
 		embed = Embed()
-		embed.title = "Link to Spreadsheet"
-		embed.url = sheet_url
+		embed.set_author(name=title, url=sheet_url)
 		embed.set_footer(text=f"Times shown in {Formatter.zone}")
 		embed.set_thumbnail(url=thonk_link)
 		return embed
@@ -64,7 +66,7 @@ class Formatter():
 
 		for i in range(0, len(availability_on_day)):
 			available = availability_on_day[i]
-			available_emote = StatusEmotes[available].value
+			available_emote = status_emotes[available]
 			time = i + start_time
 			data[time] = available_emote
 		return data
@@ -72,7 +74,7 @@ class Formatter():
 	def get_player_at_time(player, day, time, start):
 		availability = player.get_availability_at_time(day, time, start)
 
-		available_emote = StatusEmotes[availability].value
+		available_emote = status_emotes[availability]
 		availabile_response = availability_responses[availability]
 
 		message = f"{availabile_emote} {player.name} {available_response} at {time}" 
@@ -82,8 +84,7 @@ class Formatter():
 		return message
 
 	def get_player_on_day(player, day, start_time):
-		embed = Formatter.get_template_embed()
-		embed.set_author(name=f"{player.name} on {day}")
+		embed = Formatter.get_template_embed(f"{player.name} on {day}")
 		embed.set_thumbnail(url=thonk_link)
 		formatted_data = Formatter.get_day_availability(player, day, start_time)
 
@@ -93,26 +94,25 @@ class Formatter():
 		return embed
 
 	def get_player_averages(player_name):
-		embed = Formatter.get_template_embed()
-		embed.set_author(name="Average Responses for " + player_name)
+		embed = Formatter.get_template_embed(f"Average Responses for {player_name}")
 		responses = DataAnalyzer.get_response_percents(player_name)
 
-		format_response = (lambda response: f"{StatusEmotes[response].value} {response} {responses[response]}")
+		format_response = (lambda response: f"{status_emotes[response]} {response} {responses[response]}")
 		embed_str = '\n'.join([format_response(response) for response in responses])
 
 		embed.add_field(name="Responses", value=embed_str, inline=False)
 		embed.set_footer(text="")
 		return embed
 
-	def get_hour_schedule(players, week_schedule, day, hour, start_time):
-		embed = Formatter.get_template_embed()
+	def get_hour_schedule(bot, day, hour, start_time):
+		players = bot.players
+		week_schedule = bot.week_schedule
 
-		print(day)
 		day_obj = week_schedule.get_day(day)
 		activity = day_obj.get_activity_at_time(hour, start_time)
 		format_name = day_obj.get_formatted_name()
 		title = f"{activity} on {format_name} at {hour} PM"
-		embed.set_author(name=title)
+		embed = Formatter.get_template_embed(title)
 
 		for role in players.sorted_list:
 			players_string = ""
@@ -122,7 +122,7 @@ class Formatter():
 					available = player.get_availability_at_time(day, hour, start_time)
 					if available == "Yes":
 						available_count += 1
-					emote = StatusEmotes[available].value
+					emote = status_emotes[available]
 					player_str = player.name + "\t" + emote
 					players_string += player_str + "\n"
 				except:
@@ -136,8 +136,7 @@ class Formatter():
 		return embed
 
 	def get_day_schedule(players, day, start_time):
-		embed = Formatter.get_template_embed()
-		embed.set_author(name="Schedule for " + day) 
+		embed = Formatter.get_template_embed(f"Schedule for {day}")
 
 		Formatter.add_time_field(embed, "Player Name", start_time)
 			
@@ -145,8 +144,8 @@ class Formatter():
 		for player in players.unsorted_list:
 			try:
 				availability = Formatter.get_day_availability(player, day, start_time)
-				status_emotes = [availability[key] for key in availability]
-				formatted_status = ', '.join([emote for emote in status_emotes])
+				emotes = [availability[key] for key in availability]
+				formatted_status = ', '.join([emote for emote in emotes])
 				player_name = f"{role_emotes[player.role]} {player.name}"
 
 				embed.add_field(name=player_name, value=formatted_status, inline=False)
@@ -199,11 +198,9 @@ class Formatter():
 		return embed
 
 	def get_week_activity_schedule(week_schedule, start_time):
-		embed = Formatter.get_template_embed()
-		Formatter.add_time_field(embed, "Times", start_time)
-
 		week = week_schedule.days[0].date
-		embed.set_author(name="Week of " + week)
+		embed = Formatter.get_template_embed(f"Week of {week}")
+		Formatter.add_time_field(embed, "Times", start_time)
 
 		def get_formatted_activity_name(activity):
 			if activity == '':
