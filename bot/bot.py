@@ -14,8 +14,10 @@ from .formatter import sheet_url
 from .ping_scheduler import PingScheduler
 from .player_saver import PlayerSaver
 
+#TODO: use discord.ext.commands instead of this garbage
 from bot.commands.get_info_command import GetInfoCommand
 from bot.commands.update_command import UpdateCommand
+import bot.commands.ping_command as ping_cmd
 
 class Bot(discord.Client):
 	def __init__(self, token, scheduler_config):
@@ -37,11 +39,17 @@ class Bot(discord.Client):
 		
 	async def on_message(self, message):
 		await self.wait_until_ready()
+
+		if ping_cmd.ping_list:
+			ping_cmd.check_to_stop(message)
+
 		if message.content.startswith("!"):
 			if message.content.startswith("!get"):
 				await GetInfoCommand.invoke(self, message)
 			elif message.content.startswith("!update"):
 				await UpdateCommand.invoke(self, message.channel)
+			elif message.content.startswith("!ping"):
+				await ping_cmd.ping(self, message)
 	
 if __name__ == "__main__":
 	main()
