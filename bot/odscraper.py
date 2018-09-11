@@ -63,11 +63,14 @@ async def get_player_info(player_json, owner=False):
 	player_info = {}
 	player_info['name'] = user['username']
 
-	battletag = None
+	battletag = ''
 	try:
 		battletag = user['inGameName']
 	except:
-		battletag = user['accounts']['battlenet']['battletag']
+		try:
+			battletag = user['accounts']['battlenet']['battletag']
+		except:
+			pass
 		
 	player_info['info'] = await get_ow_player_info(battletag)
 

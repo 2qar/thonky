@@ -4,3 +4,5 @@ __pycache__/
 *.sh
 *.pid
 *.log
+Pipfile
+Pipfile.lock
