@@ -12,8 +12,12 @@ from .schedules import WeekSchedule
 class SheetScraper():
 	""" Used for interacting with the main spreadsheet """
 
-	doc_key = '15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c'
-	def __init__(self):
+	# FwB doc key
+	#doc_key = '15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c'
+	#QX2 key
+	#doc_key = '19LIrH878DY9Ltaux3KlfIenmMFfPTA16NWnnQQMHG0Y'
+	def __init__(self, doc_key):
+		self.doc_key = doc_key
 		self.authenticate()
 
 	def authenticate(self):
@@ -27,7 +31,7 @@ class SheetScraper():
 		print("Authenticated.")
 
 	def get_sheet(self, sheet_name):
-		return self.gc.open_by_key(SheetScraper.doc_key).worksheet(sheet_name)
+		return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
 
 	def get_players(self):
 		""" Get all of the players in a nice little bundle :) """

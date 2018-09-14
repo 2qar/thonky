@@ -18,8 +18,11 @@ class PingScheduler():
 		self.scheduler.start()
 		self.save_day_num = list(calendar.day_name).index(self.config['save_config']['save_day'].title())
 
-	def init_save_player_data(self, bot, save_day=None):
+	def init_save_player_data(self, server_info, save_day=None):
 		save_time = self.config['save_config']['save_time']
+		scraper = server_info['scraper']
+		players = server_info['players']
+		week_schedule = server_info['week_schedule']
 
 		# gets save day first time this method is called or gets next save day from previous save day given
 		if save_day == None:
@@ -34,14 +37,14 @@ class PingScheduler():
 		run_time = None
 		save_time_as_date = datetime.time(save_time)
 		if automated_save_missed:
-			PlayerSaver.save_players(bot.players, bot.week_schedule)
+			PlayerSaver.save_players(players, week_schedule)
 			next_save_day = today + datetime.timedelta(days=self.save_day_num)
 			run_time = datetime.datetime.combine(next_save_day, save_time_as_date)
 		else:
 			run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
-		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[bot.players, bot.week_schedule])
-		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[bot.scraper, save_day])
+		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[players, week_schedule])
+		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[scraper, save_day])
 		self.scheduler.print_jobs()
 
 	def init_auto_update(self, bot):

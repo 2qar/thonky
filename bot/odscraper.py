@@ -2,7 +2,10 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 
+import random
+
 fwb_id = '5b0853b7cececb03a3fbd8e2'
+#fwb_id = '5b71ecf6bb5b5103e196301f'
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
 fwb_link = team_link + fwb_id
 
@@ -117,7 +120,14 @@ def get_team_id(team):
 	except:
 		return None
 
-async def get_match(od_round):
+async def get_match(od_round, team_id):
+	'''
+	Looks through all of the matches in od_round and returns the one with the given persistentTeamID
+	:param str od_round: The round to get the match from, can be a num 1-10
+	:param str team_id: The ID of the team on battlefy that we're grabbing a match for
+	:return: A match dict or None if the match couldn't be found
+	'''
+
 	matches = 'https://dtmwra1jsgyb0.cloudfront.net/stages/5b74a1b106dda6039a96e712/rounds/{}/matches'.format(od_round)
 
 	async with aiohttp.request('GET', matches) as request:
@@ -127,15 +137,16 @@ async def get_match(od_round):
 
 		for match in matches_json:
 			for key in ['top', 'bottom']:
-				if get_team_id(match[key]) == fwb_id:
+				if get_team_id(match[key]) == team_id:
 					return match
 
 # import this method into formatter
-async def get_other_team_info(od_round):
+async def get_other_team_info(od_round, team_id):
 	'''
 	Get information on the team we're matched up against in the given round (od_round)
 
 	:param str od_round: The round to get the match from, can be a num 1-10
+	:param str team_id: The ID of the team on battlefy that we're grabbing a match for
 	:return: a dict with information about the enemy team
 	'''
 	# get the match link
@@ -151,3 +162,5 @@ async def get_other_team_info(od_round):
 
 	team_info['match_link'] = match_link
 	return team_info
+
+#print(asyncio.get_event_loop().run_until_complete(get_other_team_info(9)))

@@ -1,4 +1,4 @@
-players/
+servers/
 *.swp
 __pycache__/
 *.sh

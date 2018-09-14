@@ -3,11 +3,13 @@ import os
 
 from .day import Day
 
-player_dir = "players"
+base_player_dir = "servers/{}/players"
 class PlayerSaver():
-	def save_players(players, week_schedule):
+	def save_players(server_id, players, week_schedule):
 		week = week_schedule.days[0].date.replace('/', '-')
+		player_dir = base_player_dir.format(server_id)
 		PlayerSaver.make_folder_if_necessary(player_dir)
+
 		for player in players.unsorted_list:
 				player_folder = f"{player_dir}/{player.name}"
 				PlayerSaver.make_folder_if_necessary(player_folder)
@@ -28,9 +30,9 @@ class PlayerSaver():
 			os.makedirs(folder)
 
 class DataAnalyzer():
-	def get_player_responses(player_name):
+	def get_player_responses(server_id, player_name):
 		try:
-			os.listdir(player_dir)
+			os.listdir(base_player_dir.format(server_id))
 		except:
 			print("No player data folder")
 			return
@@ -56,7 +58,7 @@ class DataAnalyzer():
 
 		return data
 
-	def get_response_percents(player_name):
+	def get_response_percents(server_id, player_name):
 		data = DataAnalyzer.get_player_responses(player_name)
 		if data == None: return None
 
