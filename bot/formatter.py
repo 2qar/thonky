@@ -45,6 +45,8 @@ status_emotes = {
 
 battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
 
+spreadsheet_logo = 'https://www.clicktime.com/images/web-based/timesheet/integration/googlesheets.png'
+
 thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
 
 sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
@@ -56,7 +58,7 @@ class Formatter():
 	def get_template_embed(title):
 		embed = Embed()
 		embed.colour = Colour.green()
-		embed.set_author(name=title, url=sheet_url)
+		embed.set_author(name=title, url=sheet_url, icon_url=spreadsheet_logo)
 		embed.set_footer(text=f"Times shown in {Formatter.zone}")
 		embed.set_thumbnail(url=thonk_link)
 		return embed
