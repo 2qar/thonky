@@ -59,7 +59,7 @@ class DataAnalyzer():
 		return data
 
 	def get_response_percents(server_id, player_name):
-		data = DataAnalyzer.get_player_responses(player_name)
+		data = DataAnalyzer.get_player_responses(server_id, player_name)
 		if data == None: return None
 
 		response_counts = {

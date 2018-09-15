@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import random
 
 fwb_id = '5b0853b7cececb03a3fbd8e2'
-#fwb_id = '5b71ecf6bb5b5103e196301f'
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
 fwb_link = team_link + fwb_id
 
@@ -150,15 +149,15 @@ async def get_other_team_info(od_round, team_id):
 	:return: a dict with information about the enemy team
 	'''
 	# get the match link
-	match = await get_match(od_round)
+	match = await get_match(od_round, team_id)
 	match_link = match_link_base.format(match['stageID'], match['_id'])
 	
 	# get the info about the team
 	team_info = None
 	for key in ['top', 'bottom']:
-		team_id = get_team_id(match[key])
-		if team_id != fwb_id:
-			team_info = await get_team_info(team_id)
+		current_team_id = get_team_id(match[key])
+		if current_team_id != team_id:
+			team_info = await get_team_info(current_team_id)
 
 	team_info['match_link'] = match_link
 	return team_info

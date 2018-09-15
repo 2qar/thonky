@@ -1,6 +1,7 @@
 import calendar
 import datetime
 from discord import Embed
+from discord import Colour
 
 from .players import Player
 from .player_saver import DataAnalyzer
@@ -54,6 +55,7 @@ class Formatter():
 
 	def get_template_embed(title):
 		embed = Embed()
+		embed.colour = Colour.green()
 		embed.set_author(name=title, url=sheet_url)
 		embed.set_footer(text=f"Times shown in {Formatter.zone}")
 		embed.set_thumbnail(url=thonk_link)
@@ -93,9 +95,10 @@ class Formatter():
 
 		return embed
 
-	def get_player_averages(player_name):
+	def get_player_averages(server_id, player_name):
 		embed = Formatter.get_template_embed(f"Average Responses for {player_name}")
-		responses = DataAnalyzer.get_response_percents(player_name)
+		responses = DataAnalyzer.get_response_percents(server_id, player_name)
+		if not responses: return None
 
 		format_response = (lambda response: f"{status_emotes[response]} {response} {responses[response]}")
 		embed_str = '\n'.join([format_response(response) for response in responses])
@@ -104,9 +107,9 @@ class Formatter():
 		embed.set_footer(text="")
 		return embed
 
-	def get_hour_schedule(bot, day, hour, start_time):
-		players = bot.players
-		week_schedule = bot.week_schedule
+	def get_hour_schedule(server_info, day, hour, start_time):
+		players = server_info.players
+		week_schedule = server_info.week_schedule
 
 		day_obj = week_schedule.get_day(day)
 		activity = day_obj.get_activity_at_time(hour, start_time)
@@ -159,6 +162,7 @@ class Formatter():
 	def get_enemy_team_info(od_round, team_info):
 		title = f"Match against {team_info['name']} in Round {od_round}"
 		embed = Embed()
+		embed.colour = Colour.red()
 		embed.set_author(name=title, url=team_info['match_link'], icon_url=battlefy_logo)
 
 		embed.set_thumbnail(url=team_info['logo'])

@@ -1,6 +1,7 @@
 import asyncio
 import calendar
 import datetime
+import json
 import pytz
 from pytz import timezone
 import random
@@ -12,13 +13,21 @@ from bot.odscraper import get_other_team_info
 #TODO: Use discord.ext.commands instead of this garbo that's set up right now
 class GetInfoCommand():
 	async def invoke(bot, message):
-		def get_player_by_name(bot, name):
-			for player in bot.players.unsorted_list:
+		def get_player_by_name(server_info, name):
+			for player in server_info.players.unsorted_list:
 				if player.name.lower() == name.lower():
 					return player
 
 		content = message.content
 		channel = message.channel
+		server_info = bot.server_info
+		server_id = message.server.id
+
+		try:
+			server_info = server_info[server_id]
+		except:
+			await bot.send_message(channel, "ERROR: No doc key provided for this server.")
+			return
 
 		print(content)
 		print(content.split())
@@ -53,32 +62,32 @@ class GetInfoCommand():
 		
 		if len(split_msg) == 2:
 			given_day = content.split()[1].lower()
-			player = get_player_by_name(bot, given_day)
+			player = get_player_by_name(server_info, given_day)
 			if player:
 				schedule_embed = Formatter.get_player_on_day(player, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 
 			try:
-				schedule_embed = Formatter.get_hour_schedule(bot, day, given_day, start)
+				schedule_embed = Formatter.get_hour_schedule(server_info, day, given_day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			except:
 				print("Attempted to get schedule for day with start time ", given_day)
 
 			if given_day in ['today', 'tomorrow']:
-				schedule_embed = Formatter.get_day_schedule(bot.players, day, start)
+				schedule_embed = Formatter.get_day_schedule(server_info.players, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			elif given_day == "week":
-				await bot.send_message(channel, embed=Formatter.get_week_activity_schedule(bot.week_schedule, start))
+				await bot.send_message(channel, embed=Formatter.get_week_activity_schedule(server_info.week_schedule, start))
 				return
 			else:
 				day = content.split()[1].title()
 				if not day in list(calendar.day_name):
 					await bot.send_message(channel, "Invalid day.")
 					return
-				schedule_embed = Formatter.get_day_schedule(bot.players, day, start)
+				schedule_embed = Formatter.get_day_schedule(server_info.players, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			await bot.send_message("Invalid command: no player/day given.")
@@ -86,21 +95,35 @@ class GetInfoCommand():
 			player_name = split_msg[1]
 			# target could be a day or avg
 			target = split_msg[2].lower()
-			player = get_player_by_name(bot, player_name)
+			player = get_player_by_name(server_info, player_name)
 			if player != None:
 				if target in ['today', 'tomorrow']:
 					schedule_embed = Formatter.get_player_on_day(player, day, start)
 					await bot.send_message(channel, embed=schedule_embed)
 				elif target in ['avg', 'average']:
-					average_embed = Formatter.get_player_averages(player.name)
-					await bot.send_message(channel, embed=average_embed)
+					average_embed = Formatter.get_player_averages(server_id, player.name)
+					if average_embed:
+						await bot.send_message(channel, embed=average_embed)
+					else:
+						await bot.send_message(channel, f"ERROR: No data for {player.name}.")
 				else:
 					await bot.send_message(channel, "Invalid time given.")
 			elif player_name == "od":
 				try:
+					od_round = target
 					wait_message = await bot.send_message(channel, "Grabbing match info...")
-					team_info = await get_other_team_info(target)
-					od_embed = Formatter.get_enemy_team_info(target, team_info)
+
+					with open(f"servers/{server_id}/config.json") as config_file:
+						config = json.load(config_file)
+						team_id = config['team_id']
+					
+					if not team_id:
+						await bot.send_message(channel, "ERROR: No team id given. Run '!set_team <link to battlefy team>'.")
+						return
+
+					team_info = await get_other_team_info(od_round, team_id)
+					od_embed = Formatter.get_enemy_team_info(od_round, team_info)
+
 					await bot.delete_message(wait_message)
 					await bot.send_message(channel, embed=od_embed)
 				except:
@@ -115,12 +138,12 @@ class GetInfoCommand():
 			# given day could be a day or a time
 			given_day = split_msg[3].title()
 
-			player = get_player_by_name(bot, target)
+			player = get_player_by_name(server_info, target)
 			if decider == "at":
 				if not player:
 					try:
 						target_day = day if target in ['today', 'tomorrow'] else target
-						await bot.send_message(channel, embed=Formatter.get_hour_schedule(bot, target_day, given_day, start))
+						await bot.send_message(channel, embed=Formatter.get_hour_schedule(server_info, target_day, given_day, start))
 					except Exception as e:
 						await bot.send_message(channel, f"Invalid time or day. {e}")
 				else:
@@ -137,7 +160,7 @@ class GetInfoCommand():
 				await bot.send_message(channel, "Invalid identifier.")
 		elif len(split_msg) == 6:
 			player_name = split_msg[1].lower()
-			player = get_player_by_name(bot, player_name)
+			player = get_player_by_name(server_info, player_name)
 			if player == None:
 				await bot.send_message(channel, "Invalid player.")
 				return
