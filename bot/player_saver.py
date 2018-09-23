@@ -1,6 +1,3 @@
-import json
-import os
-
 from .day import Day
 from .dbhandler import DBHandler
 

@@ -1,8 +1,5 @@
 import discord
 import asyncio
-import json
-import shutil
-import os
 import logging
 
 logger = logging.getLogger('discord')
@@ -11,11 +8,7 @@ handler = logging.FileHandler(filename='discord.log', encoding = 'utf-8', mode='
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-from .sheetbot import SheetScraper
-from .formatter import Formatter
 from .formatter import sheet_url
-from .ping_scheduler import PingScheduler
-from .player_saver import PlayerSaver
 from .server_info import ServerInfo
 from .dbhandler import DBHandler
 
@@ -45,14 +38,6 @@ class Bot(discord.Client):
 	def __init__(self, token, scheduler_config):
 			super().__init__()
 			self.scheduler_config = scheduler_config
-			'''
-			self.scraper = SheetScraper()
-			self.players = self.scraper.get_players()
-			self.week_schedule = self.scraper.get_week_schedule()
-			self.scheduler = PingScheduler(scheduler_config)
-			self.scheduler.init_auto_update(self)
-			self.scheduler.init_save_player_data(self)
-			'''
 			self.run(token)
 	
 	async def on_ready(self):

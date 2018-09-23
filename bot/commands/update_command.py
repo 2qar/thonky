@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 
 from ..server_info import ServerInfo
 from ..dbhandler import DBHandler
@@ -34,8 +33,8 @@ class UpdateCommand():
 		if should_send_messages: 
 			await bot.send_message(channel, "Scanning sheet...")
 
-		with open(f"servers/{server_id}/config.json") as config_file:
-			config = json.load(config_file)
+		with DBHandler() as handler:
+			config = handler.get_server_config(server_id)
 			config_doc_key = config['doc_key']
 			if server_info.scraper.doc_key != config_doc_key:
 				server_info.scraper.doc_key = config_doc_key
@@ -45,11 +44,6 @@ class UpdateCommand():
 		if should_send_messages: 
 			await bot.send_message(channel, "Rescanned sheet.")
 		server_info.scanning = False
-
-	async def bulk_update(bot):
-		for server_id in os.listdir('servers'):
-			print(f"Updating server with ID [{server_id}]")
-			await UpdateCommand.invoke(bot, server_id)
 
 	async def help(bot, channel):
 		pass

@@ -1,7 +1,6 @@
 import psycopg2
 import yaml
 import json
-import os
 
 def format_arrays(string):
 	""" Format arrays to be SQL friendly :) """

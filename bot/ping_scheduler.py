@@ -1,13 +1,10 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 import calendar
-import yaml
-import json
 
 from .formatter import Formatter
 from .player_saver import PlayerSaver
 from .dbhandler import DBHandler
-#from bot.commands.update_command.UpdateCommand import bulk_update
 
 class PingScheduler():
 	def __init__(self, server_id, config, server_info):
