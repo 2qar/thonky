@@ -13,6 +13,12 @@ def format_arrays(string):
 	""" Format arrays to be SQL friendly :) """
 	return string.replace('[', '{').replace(']', '}')
 
+def dictify(data, fields):
+	formatted_data = {}
+	for i, key in enumerate(fields):
+		formatted_data[key] = data[i]
+	return formatted_data
+
 
 class DBHandler():
 	server_config_fields = ['announce_channel', 'doc_key', 'non_reminder_activities', 'remind_intervals', 'role_mention', 'team_id', 'update_interval']
@@ -78,14 +84,16 @@ class DBHandler():
 		self.conn.commit()
 
 	def format_sql_data(self, fields):
-		data = self.cursor.fetchone()
-		data = data[1:]
+		data = self.cursor.fetchall()
 
-		formatted_data = {}
-		for i, key in enumerate(fields):
-			formatted_data[key] = data[i]
-		return formatted_data
-
+		if len(data) > 1:
+			return [dictify(entry[1:], fields) for entry in data]
+		else:
+			return dictify(data[0][1:], fields)
+		
+		
 	def close(self):
 		self.cursor.close()
 		self.conn.close()
+
+print(DBHandler().get_player_data('437847669839495168', 'Frostt'))
