@@ -3,6 +3,7 @@ import json
 import os
 
 from ..server_info import ServerInfo
+from ..dbhandler import DBHandler
 
 #TODO: Make help method
 #TODO: Make this work with server info
@@ -13,21 +14,20 @@ class UpdateCommand():
 		if server_id in bot.server_info:
 			server_info = bot.server_info[server_id]
 		else:
-			try:
-				with open(f"servers/{server_id}/config.json") as file:
-					doc_key = json.load(file)['doc_key']
-			except:
-				error_msg = "ERROR: No doc key given for server, unable to update "
-				if should_send_messages:
-					await bot.send_message(channel, error_msg)
-				print(error_msg + server_id)
-				return
-
-			info = ServerInfo(doc_key, server_id, bot, UpdateCommand.invoke)
-			bot.server_info[server_id] = info
-			print(f"Constructed ServerInfo for server with ID [{server_id}]")
-			return
-
+			with DBHandler() as handler:
+				doc_key = handler.get_server_config(server_id)['doc_key']
+				if not doc_key:
+					error_msg = "ERROR: No doc key given for server, unable to update "
+					if should_send_messages:
+						await bot.send_message(channel, error_msg)
+					print(error_msg + server_id)
+					return
+				else:
+					info = ServerInfo(doc_key, server_id, bot, UpdateCommand.invoke)
+					bot.server_info[server_id] = info
+					print(f"Constructed ServerInfo for server with ID [{server_id}]")
+					return
+			
 		if server_info.scanning: return
 
 		server_info.scanning = True

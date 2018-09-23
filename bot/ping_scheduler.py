@@ -6,6 +6,7 @@ import json
 
 from .formatter import Formatter
 from .player_saver import PlayerSaver
+from .dbhandler import DBHandler
 #from bot.commands.update_command.UpdateCommand import bulk_update
 
 class PingScheduler():
@@ -58,8 +59,8 @@ class PingScheduler():
 	
 	def init_schedule_pings(self, bot):
 		channel = None
-		with open(f"servers/{self.server_id}/config.json") as config_file:
-			config = json.load(config_file)
+		with DBHandler() as handler:
+			config = handler.get_server_config(self.server_id)
 			announce_channel = config['announce_channel']
 			role_mention = config['role_mention']
 

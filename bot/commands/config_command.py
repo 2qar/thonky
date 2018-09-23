@@ -2,6 +2,7 @@ import asyncio
 import json
 
 from .update_command import UpdateCommand
+from bot.dbhandler import DBHandler
 
 #TODO: help command that prints out all of the available stuff to configure and their required arguments 
 #TODO: !add <spreadsheet link> to get doc key
@@ -85,6 +86,7 @@ async def config(bot, message):
 		await bot.send_message(channel, "ERROR: You do not have permission to use this command.")
 		return
 
+	# TODO: Fix the decorator issue at the top of this
 	'''
 	try:
 		editor = ConfigEditor(bot, message)
@@ -136,9 +138,6 @@ async def config(bot, message):
 			await bot.send_message(channel, "Successfully set role mention. Run `!update` to update the reminder list. :)")
 			
 def write_property(server_id, key, value):
-	file_path = f"servers/{server_id}/config.json"
-	with open(file_path) as config_file:
-		config = json.load(config_file)
-	with open(file_path, 'w') as config_file:
-		config[key] = value
-		config_file.write(json.dumps(config, indent=4, sort_keys=True))
+	""" Update a single property of a server's config """
+	with DBHandler() as handler:
+		handler.update_server_config(server_id, key, value)

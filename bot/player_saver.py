@@ -2,65 +2,43 @@ import json
 import os
 
 from .day import Day
+from .dbhandler import DBHandler
 
 base_player_dir = "servers/{}/players"
 class PlayerSaver():
 	def save_players(server_id, players, week_schedule):
 		week = week_schedule.days[0].date.replace('/', '-')
-		player_dir = base_player_dir.format(server_id)
-		PlayerSaver.make_folder_if_necessary(player_dir)
 
-		for player in players.unsorted_list:
-				player_folder = f"{player_dir}/{player.name}"
-				PlayerSaver.make_folder_if_necessary(player_folder)
-				filename = player_folder + f"/{week}.json"
+		with DBHandler() as handler:
+			for player in players.unsorted_list:
 				availability = {}
 				for key in Day:
 					day = key.name
 					availability[day] = player.get_availability_for_day(day)
-				print(filename)
-				if os.path.exists(filename):
-					print("\talready saved")
-					continue
-				with open(filename, 'w') as outfile:
-					json.dump(availability, outfile)
 
-	def make_folder_if_necessary(folder):
-		if not os.path.exists(folder):
-			os.makedirs(folder)
+				if not handler.get_player_data(server_id, player.name, date=week):
+					handler.add_player_data(server_id, player.name, week, availability)
+					print(f"added {player.name} on {week} to db")
+				else:
+					print("{player.name} on {week} already added, skipping")
 
 class DataAnalyzer():
 	def get_player_responses(server_id, player_name):
-		try:
-			os.listdir(base_player_dir.format(server_id))
-		except:
-			print("No player data folder")
-			return
+		with DBHandler() as handler:
+			player_data = handler.get_player_data(server_id, player_name)
 
-		player_folder = None
-		for player in os.listdir(player_dir):
-			if player_name.lower() == player.lower():
-				player_folder = player
+			response_data = {}
+			if isinstance(player_data, list):
+				for entry in player_data:
+					response_data[entry['date']] = entry['availability']
+			else:
+				response_data[player_data['date']] = player_data['availability']
 
-		if player_folder == None: return None
-
-		data = {}
-		directory = player_dir + "/" + player_folder
-		for data_file in os.listdir(directory):
-			path = f"{player_dir}/{player_folder}/{data_file}"
-
-			# get the date to use as a key
-			dot = data_file.find(".")
-			key = data_file[:dot]
-
-			with open(path) as file:
-				data[key] = json.load(file)
-
-		return data
+			return response_data
 
 	def get_response_percents(server_id, player_name):
 		data = DataAnalyzer.get_player_responses(server_id, player_name)
-		if data == None: return None
+		if not data: return
 
 		response_counts = {
 			"Yes": 0,

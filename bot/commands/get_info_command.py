@@ -9,6 +9,7 @@ import random
 from bot.timezonehelper import TimezoneHelper
 from bot.formatter import Formatter
 from bot.odscraper import get_other_team_info
+from bot.dbhandler import DBHandler
 
 #TODO: Use discord.ext.commands instead of this garbo that's set up right now
 class GetInfoCommand():
@@ -113,10 +114,9 @@ class GetInfoCommand():
 					od_round = target
 					wait_message = await bot.send_message(channel, "Grabbing match info...")
 
-					with open(f"servers/{server_id}/config.json") as config_file:
-						config = json.load(config_file)
-						team_id = config['team_id']
-					
+					with DBHandler() as handler:
+						team_id = handler.get_server_config(server_id)['team_id']
+
 					if not team_id:
 						await bot.send_message(channel, "ERROR: No team id given. Run '!set_team <link to battlefy team>'.")
 						return

@@ -17,6 +17,7 @@ from .formatter import sheet_url
 from .ping_scheduler import PingScheduler
 from .player_saver import PlayerSaver
 from .server_info import ServerInfo
+from .dbhandler import DBHandler
 
 #TODO: use discord.ext.commands instead of this garbage
 from bot.commands.get_info_command import GetInfoCommand
@@ -58,53 +59,20 @@ class Bot(discord.Client):
 		playing = discord.Game(name="with spreadsheets", url=sheet_url, type=1)
 		await self.change_presence(game=playing)
 
-		'''
-		SERVER CONFIG FILE NEEDS:
-			- doc key
-			- server_id
-			- announce_channel
-			- main_roster_mention
-
-		SERVER DICT NEEDS:
-			- all of the above except doc key
-			- all of the stuff that the current config has minus tokens and maybe save config
-			- scraper
-			- players
-			- week_schedule
-		'''
 		self.server_info = {}
-		for server in self.servers:
-			#TODO: Make this a method so it can be run when the bot joins a server maybe
-			server_path = f"servers/{server.id}"
-			config_path = f"{server_path}/config.json"
-			try:
-				#current_info = {}
-
-				server_config = None
-				with open(config_path) as file:
-					print(config_path)
-					server_config = json.load(file)
-
-				doc_key = server_config['doc_key']
-				if not doc_key:
-					print(f"No doc_key provided for server \"{server.name}\" with ID [{server.id}].")
-					continue
-				'''
-				scraper = SheetScraper(doc_key)
-				current_info['scraper'] = scraper
-				current_info['players'] = scraper.get_players()
-				current_info['week_schedule'] = scraper.get_week_schedule()
-				current_info['scanning'] = False
-				current_info['scheduler'] = PingScheduler(server.id, self.scheduler_config, current_info)
-				
-				self.server_info[server.id] = current_info
-				'''
-				self.server_info[server.id] = ServerInfo(doc_key, server.id, self, UpdateCommand.invoke)
-				#current_info['scheduler'].init_scheduler(self)
-			except FileNotFoundError as e:
-				print(f"Failed to get config for server \"{server.name}\" with ID [{server.id}].")
-				Bot.create_server_config(server)
-		print(self.server_info)
+		with DBHandler() as handler:
+			for server in self.servers:
+				server_config = handler.get_server_config(server.id)
+				if server_config:
+					doc_key = server_config['doc_key']
+					if not doc_key:
+						print(f"No doc_key provided for server \"{server.name}\" with ID [{server.id}].")
+						continue
+					else:
+						self.server_info[server.id] = ServerInfo(doc_key, server.id, self, UpdateCommand.invoke)
+				else:
+					print(f"Failed to get config for server \"{server.name}\" with ID [{server.id}].")
+					Bot.create_server_config(server)
 
 		print("Ready! :)")
 		
@@ -135,18 +103,9 @@ class Bot(discord.Client):
 	def create_server_config(server):
 		print(f"Creating config for server with ID [{server.id}]")
 
-		server_path = f"servers/{server.id}"
-		config_path = f"{server_path}/config.json"
-		if os.path.exists(config_path):
-			print("\tConfig already exists.")
-			return
-
-		if not os.path.isdir(server_path):
-			os.makedirs(server_path)
-		shutil.copyfile('config_base.json', config_path)
-
-		print("\tSuccessfully created config.")
-
+		with DBHandler() as handler:
+			if not handler.get_server_config(server.id):
+				handler.add_server_config(server.id)
 	
 if __name__ == "__main__":
 	main()

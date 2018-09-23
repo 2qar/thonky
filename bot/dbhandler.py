@@ -1,19 +1,14 @@
 import psycopg2
 import yaml
 import json
-
-	#TODO: Get server config method
-	#TODO: Add server config method
-	#TODO: Update server config method
-
-	#TODO: Get player data method
-	#TODO: Save player data method
+import os
 
 def format_arrays(string):
 	""" Format arrays to be SQL friendly :) """
 	return string.replace('[', '{').replace(']', '}')
 
 def dictify(data, fields):
+	""" Convert a tuple to a dict with the given keys """
 	formatted_data = {}
 	for i, key in enumerate(fields):
 		formatted_data[key] = data[i]
@@ -30,6 +25,12 @@ class DBHandler():
 		self.conn = psycopg2.connect(dbname=cfg['db_name'], user=cfg['db_user'], password=cfg['db_pass'], host=cfg['db_ip'])
 		self.cursor = self.conn.cursor()
 
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.close()
+
 	def get_server_config(self, server_id):
 		self.cursor.execute("""
 			SELECT * FROM server_config 
@@ -44,7 +45,13 @@ class DBHandler():
 			config_base = json.load(base)
 
 		formatted_config_base = f"'{server_id}', "
-		formatted_config_base += ', '.join([f"'{config_base[key[0]]}'" for key in sorted(config_base.items())])
+		
+		def format_item(key):
+			value = str(config_base[key[0]])
+			value = value.replace("'", '"')
+			return f"'{value}'"
+
+		formatted_config_base += ', '.join([format_item(key) for key in sorted(config_base.items())])
 		formatted_config_base = format_arrays(formatted_config_base)
 
 		query = f"""
@@ -52,6 +59,7 @@ class DBHandler():
 			VALUES ({formatted_config_base})
 			"""
 		self.cursor.execute(query)
+		self.conn.commit()
 
 	def update_server_config(self, server_id, key, value):
 		query = f"""
@@ -86,14 +94,13 @@ class DBHandler():
 	def format_sql_data(self, fields):
 		data = self.cursor.fetchall()
 
+		if not data: return
+
 		if len(data) > 1:
 			return [dictify(entry[1:], fields) for entry in data]
 		else:
 			return dictify(data[0][1:], fields)
 		
-		
 	def close(self):
 		self.cursor.close()
 		self.conn.close()
-
-print(DBHandler().get_player_data('437847669839495168', 'Frostt'))
