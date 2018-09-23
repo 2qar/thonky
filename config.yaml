@@ -14,3 +14,8 @@ intervals:
 remind_config:
     # activites that people won't get pinged for
     non_reminder_activities: ['Free', 'TBD', 'Player VOD']
+---
+db_name: ''
+db_ip: ''
+db_user: ''
+db_pass: ''
