@@ -33,6 +33,7 @@ bot
 '''
 
 #TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
+#TODO: Make a systemd unit so this can auto reboot if it crashes on the pi
 
 class Bot(discord.Client):
 	def __init__(self, token, scheduler_config):
