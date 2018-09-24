@@ -121,12 +121,14 @@ async def config(bot, message):
 	elif cmd == "!set_channel":
 		channel = split[1]
 		if not channel.startswith("<#"):
-			await bot.send_messaeg(channel, "ERROR: Invalid channel.")
+			await bot.send_message(channel, "ERROR: Invalid channel.")
 		else:
 			# check for send permission
 			if not channel.permissions_for(message.server.me).send_messages:
 				await bot.send_message(channel, "ERROR: I can't send messages in that channel. :(")
 			else:
+				# get channel ID inside <#>
+				channel = channel[2:-1]
 				write_property(server_id, 'announce_channel', channel)
 				await bot.send_message(channel, "Successfully set reminder channel. Run `!update` to update the reminder list. :)")
 	elif cmd == "!set_role":
