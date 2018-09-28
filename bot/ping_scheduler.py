@@ -1,21 +1,27 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 import calendar
+import yaml
 
 from .formatter import Formatter
 from .player_saver import PlayerSaver
 from .dbhandler import DBHandler
 
 class PingScheduler():
-	def __init__(self, server_id, config, server_info):
+	def __init__(self, server_id, server_info):
 		self.server_id = server_id
-		self.config = config
+		with open('config.yaml') as file:
+			self.config = [doc for doc in yaml.safe_load_all(file)][1]
 		self.server_info = server_info
 		self.scheduler = AsyncIOScheduler()
 		self.scheduler.start()
 		self.save_day_num = list(calendar.day_name).index(self.config['save_config']['save_day'].title())
 
 	def init_scheduler(self, bot, update_command):
+		#TODO: Load config once and pass it to the 3 methods below
+		#with DBHandler() as handler:
+			#self.server_info(
+
 		self.init_save_player_data()
 		self.init_auto_update(bot, update_command)
 		self.init_schedule_pings(bot)
@@ -60,6 +66,8 @@ class PingScheduler():
 			config = handler.get_server_config(self.server_id)
 			announce_channel = config['announce_channel']
 			role_mention = config['role_mention']
+			non_reminder_activities = config['non_reminder_activities']
+			remind_intervals = config['remind_intervals']
 
 		try:
 			channel = bot.get_server(self.server_id).get_channel(announce_channel)
@@ -96,9 +104,9 @@ class PingScheduler():
 					# 16 = 4 PM PST
 					time = activity_time + 16
 					activity = day.activities[activity_time]
-					if not activity in self.config['remind_config']['non_reminder_activities']:
+					if not activity in non_reminder_activities:
 						# schedule pings 15 and 5 minutes before first activity of day
-						for interval in self.config['intervals']['remind_intervals']:
+						for interval in remind_intervals:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
 							ping_string = f"{role_mention} {activity} in {interval} minutes"
 							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)

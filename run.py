@@ -16,4 +16,4 @@ elif sys.argv[1] == 'test':
 	print("Starting bot with test token.")
 	token = config['tokens']['test_token']
 
-bot = Bot(token, config_docs[1])
+bot = Bot(token)

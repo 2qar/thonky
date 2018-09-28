@@ -7,7 +7,7 @@ class ServerInfo:
 		self.players = self.scraper.get_players()
 		self.week_schedule = self.scraper.get_week_schedule()
 		self.scanning = False
-		self.scheduler = PingScheduler(server_id, bot.scheduler_config, self)
+		self.scheduler = PingScheduler(server_id, self)
 		self.update_command = update_command
 		self.scheduler.init_scheduler(bot, update_command)
 

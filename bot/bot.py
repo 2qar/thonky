@@ -36,9 +36,8 @@ bot
 #TODO: Make a systemd unit so this can auto reboot if it crashes on the pi
 
 class Bot(discord.Client):
-	def __init__(self, token, scheduler_config):
+	def __init__(self, token):
 			super().__init__()
-			self.scheduler_config = scheduler_config
 			self.run(token)
 	
 	async def on_ready(self):
