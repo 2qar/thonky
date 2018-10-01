@@ -15,9 +15,6 @@ def dictify(data, fields):
 
 
 class DBHandler():
-	server_config_fields = ['announce_channel', 'doc_key', 'non_reminder_activities', 'remind_intervals', 'role_mention', 'team_id', 'update_interval']
-	player_data_fields = ['name', 'date', 'availability']
-
 	def __init__(self):
 		with open('config.yaml') as config_file:
 			cfg = [doc for doc in yaml.safe_load_all(config_file)][-1]
@@ -30,6 +27,17 @@ class DBHandler():
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.close()
 
+	def get_table_fields(self, table_name):
+		self.cursor.execute(f"""
+			SELECT column_name FROM information_schema.columns
+			WHERE table_name='{table_name}'""")
+		fields = [field[0] for field in self.cursor.fetchall()]
+
+		if 'server_id' in fields:
+			fields = fields[1:]
+
+		return fields
+
 	def get_server_config(self, server_id):
 		self.cursor.execute("""
 			SELECT * FROM server_config 
@@ -37,7 +45,7 @@ class DBHandler():
 			""", 
 			(server_id,))
 
-		return self.format_sql_data(DBHandler.server_config_fields)
+		return self.format_sql_data('server_config')
 
 	def add_server_config(self, server_id):
 		with open('config_base.json') as base:
@@ -54,7 +62,7 @@ class DBHandler():
 		formatted_config_base = format_arrays(formatted_config_base)
 
 		query = f"""
-			INSERT INTO server_config (server_id, announce_channel, doc_key, non_reminder_activities, remind_intervals, role_mention, team_id, update_interval)
+			INSERT INTO server_config
 			VALUES ({formatted_config_base})
 			"""
 		self.cursor.execute(query)
@@ -78,7 +86,7 @@ class DBHandler():
 			""",
 			(server_id, name))
 
-		return self.format_sql_data(DBHandler.player_data_fields)
+		return self.format_sql_data('player_data')
 
 	def add_player_data(self, server_id, name, date, availability):
 		friendly_availability = str(availability).replace("'", '"')
@@ -90,8 +98,9 @@ class DBHandler():
 		self.cursor.execute(query)
 		self.conn.commit()
 
-	def format_sql_data(self, fields):
+	def format_sql_data(self, table_name):
 		data = self.cursor.fetchall()
+		fields = self.get_table_fields(table_name)
 
 		if not data: return
 
