@@ -1,7 +1,6 @@
 import asyncio
 import calendar
 import datetime
-import json
 import pytz
 from pytz import timezone
 import random
@@ -65,30 +64,30 @@ class GetInfoCommand():
 			given_day = content.split()[1].lower()
 			player = get_player_by_name(server_info, given_day)
 			if player:
-				schedule_embed = Formatter.get_player_on_day(player, day, start)
+				schedule_embed = Formatter.get_player_on_day(server_id, player, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 
 			try:
-				schedule_embed = Formatter.get_hour_schedule(server_info, day, given_day, start)
+				schedule_embed = Formatter.get_hour_schedule(server_id, server_info, day, given_day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			except:
 				print("Attempted to get schedule for day with start time ", given_day)
 
 			if given_day in ['today', 'tomorrow']:
-				schedule_embed = Formatter.get_day_schedule(server_info.players, day, start)
+				schedule_embed = Formatter.get_day_schedule(server_id, server_info.players, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			elif given_day == "week":
-				await bot.send_message(channel, embed=Formatter.get_week_activity_schedule(server_info.week_schedule, start))
+				await bot.send_message(channel, embed=Formatter.get_week_activity_schedule(server_id, server_info.week_schedule, start))
 				return
 			else:
 				day = content.split()[1].title()
 				if not day in list(calendar.day_name):
 					await bot.send_message(channel, "Invalid day.")
 					return
-				schedule_embed = Formatter.get_day_schedule(server_info.players, day, start)
+				schedule_embed = Formatter.get_day_schedule(server_id, server_info.players, day, start)
 				await bot.send_message(channel, embed=schedule_embed)
 				return
 			await bot.send_message("Invalid command: no player/day given.")
@@ -99,7 +98,7 @@ class GetInfoCommand():
 			player = get_player_by_name(server_info, player_name)
 			if player != None:
 				if target in ['today', 'tomorrow']:
-					schedule_embed = Formatter.get_player_on_day(player, day, start)
+					schedule_embed = Formatter.get_player_on_day(server_id, player, day, start)
 					await bot.send_message(channel, embed=schedule_embed)
 				elif target in ['avg', 'average']:
 					average_embed = Formatter.get_player_averages(server_id, player.name)
@@ -143,7 +142,7 @@ class GetInfoCommand():
 				if not player:
 					try:
 						target_day = day if target in ['today', 'tomorrow'] else target
-						await bot.send_message(channel, embed=Formatter.get_hour_schedule(server_info, target_day, given_day, start))
+						await bot.send_message(channel, embed=Formatter.get_hour_schedule(server_id, server_info, target_day, given_day, start))
 					except Exception as e:
 						await bot.send_message(channel, f"Invalid time or day. {e}")
 				else:
@@ -153,7 +152,7 @@ class GetInfoCommand():
 							await bot.send_message(channel, "Invalid time.")
 			elif decider == "on":
 				try:
-					await bot.send_message(channel, embed=Formatter.get_player_on_day(player, given_day, start))
+					await bot.send_message(channel, embed=Formatter.get_player_on_day(server_id, player, given_day, start))
 				except:
 					await bot.send_message(channel, "Invalid day.")
 			else:

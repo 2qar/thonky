@@ -5,6 +5,7 @@ from discord import Colour
 
 from .players import Player
 from .player_saver import DataAnalyzer
+from .dbhandler import DBHandler
 
 letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':keycap_ten:', ':one::one:', ':one::two:']
 
@@ -49,16 +50,18 @@ spreadsheet_logo = 'https://www.clicktime.com/images/web-based/timesheet/integra
 
 thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/476837854966710282/thonk.png"
 
-sheet_url = "https://docs.google.com/spreadsheets/d/15oxfuWKI97HZRaSG5Jxcyw5Ycdr9mPDc_VmEoHFu4-c/edit#gid=1697055162"
+sheet_url = "https://docs.google.com/spreadsheets/d/"
 
 
 class Formatter():
 	zone = "PDT"
 
-	def get_template_embed(title):
+	def get_template_embed(server_id, title):
 		embed = Embed()
 		embed.colour = Colour.green()
-		embed.set_author(name=title, url=sheet_url, icon_url=spreadsheet_logo)
+		with DBHandler() as handler:
+			sheet_link = sheet_url + handler.get_server_config(server_id)['doc_key']
+		embed.set_author(name=title, url=sheet_link, icon_url=spreadsheet_logo)
 		embed.set_footer(text=f"Times shown in {Formatter.zone}")
 		embed.set_thumbnail(url=thonk_link)
 		return embed
@@ -87,8 +90,8 @@ class Formatter():
 		message += f" on {day}." if day_not_today else "."
 		return message
 
-	def get_player_on_day(player, day, start_time):
-		embed = Formatter.get_template_embed(f"{player.name} on {day}")
+	def get_player_on_day(server_id, player, day, start_time):
+		embed = Formatter.get_template_embed(server_id, f"{player.name} on {day}")
 		embed.set_thumbnail(url=thonk_link)
 		formatted_data = Formatter.get_day_availability(player, day, start_time)
 
@@ -98,7 +101,7 @@ class Formatter():
 		return embed
 
 	def get_player_averages(server_id, player_name):
-		embed = Formatter.get_template_embed(f"Average Responses for {player_name}")
+		embed = Formatter.get_template_embed(server_id, f"Average Responses for {player_name}")
 		responses = DataAnalyzer.get_response_percents(server_id, player_name)
 		if not responses: return None
 
@@ -109,7 +112,7 @@ class Formatter():
 		embed.set_footer(text="")
 		return embed
 
-	def get_hour_schedule(server_info, day, hour, start_time):
+	def get_hour_schedule(server_id, server_info, day, hour, start_time):
 		players = server_info.players
 		week_schedule = server_info.week_schedule
 
@@ -117,7 +120,7 @@ class Formatter():
 		activity = day_obj.get_activity_at_time(hour, start_time)
 		format_name = day_obj.get_formatted_name()
 		title = f"{activity} on {format_name} at {hour} PM"
-		embed = Formatter.get_template_embed(title)
+		embed = Formatter.get_template_embed(server_id, title)
 
 		for role in players.sorted_list:
 			players_string = ""
@@ -140,8 +143,8 @@ class Formatter():
 
 		return embed
 
-	def get_day_schedule(players, day, start_time):
-		embed = Formatter.get_template_embed(f"Schedule for {day}")
+	def get_day_schedule(server_id, players, day, start_time):
+		embed = Formatter.get_template_embed(server_id, f"Schedule for {day}")
 
 		Formatter.add_time_field(embed, "Player Name", start_time)
 			
@@ -203,9 +206,9 @@ class Formatter():
 
 		return embed
 
-	def get_week_activity_schedule(week_schedule, start_time):
+	def get_week_activity_schedule(server_id, week_schedule, start_time):
 		week = week_schedule.days[0].date
-		embed = Formatter.get_template_embed(f"Week of {week}")
+		embed = Formatter.get_template_embed(server_id, f"Week of {week}")
 		Formatter.add_time_field(embed, "Times", start_time)
 
 		def get_formatted_activity_name(activity):

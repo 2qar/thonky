@@ -96,7 +96,7 @@ class PingScheduler():
 				if day_not_free:
 					morning_runtime = datetime.datetime.combine(date, datetime.time(9))
 					morning_ping_id = day.name + "_morning_ping"
-					embed = Formatter.get_day_schedule(self.server_info.players, day.name, 4)
+					embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
 					self.scheduler.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True)
 
 				# schedule pings before the first activity of the day
