@@ -17,7 +17,7 @@ class PlayerSaver():
 					handler.add_player_data(server_id, player.name, week, availability)
 					print(f"added {player.name} on {week} to db")
 				else:
-					print("{player.name} on {week} already added, skipping")
+					print(f"{player.name} on {week} already added, skipping")
 
 class DataAnalyzer():
 	def get_player_responses(server_id, player_name):

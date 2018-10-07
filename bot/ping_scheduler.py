@@ -1,4 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.memory import MemoryJobStore
 import datetime
 import calendar
 import yaml
@@ -7,14 +8,16 @@ from .formatter import Formatter
 from .player_saver import PlayerSaver
 from .dbhandler import DBHandler
 
-class PingScheduler():
+class PingScheduler(AsyncIOScheduler):
 	def __init__(self, server_id, server_info):
+		super().__init__()
+		self.start()
+		self.add_jobstore(MemoryJobStore(), alias='pings')
+
 		self.server_id = server_id
 		with open('config.yaml') as file:
 			self.config = [doc for doc in yaml.safe_load_all(file)][1]
 		self.server_info = server_info
-		self.scheduler = AsyncIOScheduler()
-		self.scheduler.start()
 		self.save_day_num = list(calendar.day_name).index(self.config['save_config']['save_day'].title())
 
 	def init_scheduler(self, bot, update_command):
@@ -25,6 +28,7 @@ class PingScheduler():
 		self.init_save_player_data()
 		self.init_auto_update(bot, update_command)
 		self.init_schedule_pings(bot)
+		self.print_jobs()
 
 	def init_save_player_data(self, save_day=None):
 		save_time = self.config['save_config']['save_time']
@@ -51,14 +55,12 @@ class PingScheduler():
 		else:
 			run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
-		self.scheduler.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
-		self.scheduler.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
-		self.scheduler.print_jobs()
+		self.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
+		self.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
 
 	def init_auto_update(self, bot, update_command):
 		update_interval = self.config['intervals']['update_interval']
-		self.scheduler.add_job(update_command, 'interval', minutes=update_interval, args=[bot, self.server_id], id="update_schedule")
-		#self.scheduler.add_job(UpdateCommand.invoke, 'interval', minutes=update_interval, args=[bot], id="update_schedule")
+		self.add_job(update_command, 'interval', minutes=update_interval, args=[bot, self.server_id], id="update_schedule")
 	
 	def init_schedule_pings(self, bot):
 		channel = None
@@ -97,7 +99,7 @@ class PingScheduler():
 					morning_runtime = datetime.datetime.combine(date, datetime.time(9))
 					morning_ping_id = day.name + "_morning_ping"
 					embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
-					self.scheduler.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True)
+					self.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True, jobstore='pings')
 
 				# schedule pings before the first activity of the day
 				for activity_time in range(0, 6):
@@ -109,8 +111,8 @@ class PingScheduler():
 						for interval in remind_intervals:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
 							ping_string = f"{role_mention} {activity} in {interval} minutes"
-							id_str = day.get_formatted_name() + " " + str(time) + " " + str(interval)
-							self.scheduler.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
+							id_str = f"{day.get_formatted_name()} {interval} min reminder"
+							self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True, jobstore='pings')
 						break
 
 				# open division pings
@@ -121,7 +123,5 @@ class PingScheduler():
 					# run at 10:30 AM
 					run_time = datetime.datetime.combine(date, datetime.time(10, 30))
 					id_str = day.get_formatted_name() + "_open_division"
-					self.scheduler.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
+					self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
 				'''
-
-		self.scheduler.print_jobs()
