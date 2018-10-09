@@ -68,7 +68,7 @@ class PingScheduler(AsyncIOScheduler):
 			config = handler.get_server_config(self.server_id)
 			announce_channel = config['announce_channel']
 			role_mention = config['role_mention']
-			non_reminder_activities = config['non_reminder_activities']
+			remind_activities = [activity.lower() for activity in config['remind_activities']]
 			remind_intervals = config['remind_intervals']
 
 		try:
@@ -106,7 +106,7 @@ class PingScheduler(AsyncIOScheduler):
 					# 16 = 4 PM PST
 					time = activity_time + 16
 					activity = day.activities[activity_time]
-					if not activity in non_reminder_activities:
+					if activity.lower() in remind_activities:
 						# schedule pings 15 and 5 minutes before first activity of day
 						for interval in remind_intervals:
 							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
