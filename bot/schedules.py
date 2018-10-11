@@ -1,3 +1,5 @@
+import datetime
+
 class DaySchedule():
 	def __init__(self, name, date, activities):
 		self.name = name
@@ -12,6 +14,18 @@ class DaySchedule():
 
 	def get_formatted_name(self):
 		return f"{self.name}, {self.date}"
+
+	def as_date(self):
+		date_split = self.date.split('/')
+		month = int(date_split[0])
+		day = int(date_split[1])
+		return datetime.date(datetime.datetime.today().year, month, day)
+
+	def first_activity(self, remind_activities):
+		for i, activity in enumerate(self.activities):
+			if activity.lower() in remind_activities:
+				return i
+		return -1
 
 	def __str__(self):
 		return f"{self.name}, {self.date}: {self.activities}"
@@ -31,4 +45,3 @@ class WeekSchedule():
 		for day in self.days:
 			week_string += str(day) + "\n"
 		return week_string
-

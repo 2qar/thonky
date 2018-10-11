@@ -58,6 +58,7 @@ class PingScheduler(AsyncIOScheduler):
 		self.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
 		self.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
 
+	# TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
 	def init_auto_update(self, bot, update_command):
 		update_interval = self.config['intervals']['update_interval']
 		self.add_job(update_command, 'interval', minutes=update_interval, args=[bot, self.server_id], id="update_schedule")
@@ -77,51 +78,28 @@ class PingScheduler(AsyncIOScheduler):
 			print("couldn't grab server to ping people in, probably using wrong token or this function is being called before the bot is ready: ", e)
 			return
 
-		# get the date of the first day of this week
-		week_day = datetime.date.today().weekday()
-		today = datetime.datetime.today()
-		start_date = today - datetime.timedelta(days=week_day)
-
+		today = datetime.date.today().weekday()
 		days = self.server_info.week_schedule.days
+		start_date = days[0].as_date()
+
 		for day_index in range(0, len(days)):
 			# don't add pings to the scheduler if they're in the past
-			if day_index >= week_day:
-				date = (start_date + datetime.timedelta(days=day_index)).date()
+			if day_index >= today:
+				date = start_date + datetime.timedelta(days=day_index)
 				day = days[day_index]
 
-				# schedule a ping at 9 AM every day sending the schedule for the day, but only if there's something planned
-				day_not_free = False
-				for activity in day.activities:
-					if activity != "Free" and activity != "TBD":
-						day_not_free = True
-						break
-				if day_not_free:
+				first_activity = day.first_activity(remind_activities)
+				if first_activity != -1:
+					# post the schedule at 9 AM 
 					morning_runtime = datetime.datetime.combine(date, datetime.time(9))
 					morning_ping_id = day.name + "_morning_ping"
 					embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
 					self.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True, jobstore='pings')
 
-				# schedule pings before the first activity of the day
-				for activity_time in range(0, 6):
-					# 16 = 4 PM PST
-					time = activity_time + 16
-					activity = day.activities[activity_time]
-					if activity.lower() in remind_activities:
-						# schedule pings 15 and 5 minutes before first activity of day
-						for interval in remind_intervals:
-							run_time = datetime.datetime.combine(date, datetime.time(time)) - datetime.timedelta(minutes=interval)
-							ping_string = f"{role_mention} {activity} in {interval} minutes"
-							id_str = f"{day.get_formatted_name()} {interval} min reminder"
-							self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True, jobstore='pings')
-						break
-
-				# open division pings
-				'''
-				is_weekend = day_index >= 5
-				if is_weekend:
-					ping_string = f"{role_mention} Start warming up now. Scrim in 30 minutes. Game in 1 hour 30 minutes"
-					# run at 10:30 AM
-					run_time = datetime.datetime.combine(date, datetime.time(10, 30))
-					id_str = day.get_formatted_name() + "_open_division"
-					self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, ping_string], id=id_str, replace_existing=True)
-				'''
+					activity = day.activities[first_activity]
+					activity_time = datetime.datetime.combine(date, datetime.time(16 + first_activity))
+					for interval in remind_intervals:
+						run_time = activity_time - datetime.timedelta(minutes=interval)
+						message = f"{role_mention} {activity} in {interval} minutes"
+						ping_id = f"{day.get_formatted_name()} {interval} min reminder"
+						self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, message], id=ping_id, replace_existing=True, jobstore='pings')
