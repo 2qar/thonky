@@ -100,6 +100,6 @@ class PingScheduler(AsyncIOScheduler):
 					activity_time = datetime.datetime.combine(date, datetime.time(16 + first_activity))
 					for interval in remind_intervals:
 						run_time = activity_time - datetime.timedelta(minutes=interval)
-						message = f"{activity} in {interval} minutes"
+						message = f"{role_mention} {activity} in {interval} minutes"
 						ping_id = f"{day.get_formatted_name()} {interval} min reminder"
 						self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, message], id=ping_id, replace_existing=True, jobstore='pings')
