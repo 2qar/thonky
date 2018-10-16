@@ -118,8 +118,7 @@ class Formatter():
 
 		day_obj = week_schedule.get_day(day)
 		activity = day_obj.get_activity_at_time(hour, start_time)
-		format_name = day_obj.get_formatted_name()
-		title = f"{activity} on {format_name} at {hour} PM"
+		title = f"{activity} on {day_obj} at {hour} PM"
 		embed = Formatter.get_template_embed(server_id, title)
 
 		for role in players.sorted_list:
@@ -220,12 +219,10 @@ class Formatter():
 				return f':regional_indicator_{activity[0].lower()}:'
 
 		for day in week_schedule.days:
-			title = day.get_formatted_name()
-
 			# format all of the activities into one nice and pretty string
 			formatted_activities = ', '.join([get_formatted_activity_name(activity) for activity in day.activities])
 
-			embed.add_field(name=title, value=formatted_activities, inline=False)
+			embed.add_field(name=str(day), value=formatted_activities, inline=False)
 
 		return embed
 

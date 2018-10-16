@@ -7,3 +7,7 @@ __pycache__/
 Pipfile
 Pipfile.lock
 config.yaml
+
+# secret things
+client_secret.json
+token.json

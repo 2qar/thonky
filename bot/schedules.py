@@ -1,19 +1,17 @@
 import datetime
 
 class DaySchedule():
-	def __init__(self, name, date, activities):
+	def __init__(self, name, date, activities, notes):
 		self.name = name
 		self.date = date
 		self.activities = activities
+		self.notes = notes
 
 	def get_activity_at_time(self, time, start_time=4):
 		offset = int(time) - start_time
 		if offset < 0:
 			return None
 		return self.activities[offset]
-
-	def get_formatted_name(self):
-		return f"{self.name}, {self.date}"
 
 	def as_date(self):
 		date_split = self.date.split('/')
@@ -27,8 +25,16 @@ class DaySchedule():
 				return i
 		return -1
 
+	def get_vods(self):
+		""" Return the indeces of each Player VOD with a note. """
+		vods = []
+		for i in range(0, len(self.activities)):
+			if self.activities[i].lower() == 'player vod' and self.notes[i]:
+				vods.append(i)
+		return vods
+
 	def __str__(self):
-		return f"{self.name}, {self.date}: {self.activities}"
+		return f"{self.name}, {self.date}"
 
 #TODO: Convert to iterator 
 class WeekSchedule():

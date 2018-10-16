@@ -13,6 +13,7 @@ class PingScheduler(AsyncIOScheduler):
 		super().__init__()
 		self.start()
 		self.add_jobstore(MemoryJobStore(), alias='pings')
+		self.add_jobstore(MemoryJobStore(), alias='vods')
 
 		self.server_id = server_id
 		with open('config.yaml') as file:
@@ -82,24 +83,35 @@ class PingScheduler(AsyncIOScheduler):
 		days = self.server_info.week_schedule.days
 		start_date = days[0].as_date()
 
-		for day_index in range(0, len(days)):
-			# don't add pings to the scheduler if they're in the past
-			if day_index >= today:
-				date = start_date + datetime.timedelta(days=day_index)
-				day = days[day_index]
 
-				first_activity = day.first_activity(remind_activities)
-				if first_activity != -1:
-					# post the schedule at 9 AM 
-					morning_runtime = datetime.datetime.combine(date, datetime.time(9))
-					morning_ping_id = day.name + "_morning_ping"
-					embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
-					self.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True, jobstore='pings')
+		for day_index in range(today, len(days)):
+			date = start_date + datetime.timedelta(days=day_index)
+			day = days[day_index]
 
-					activity = day.activities[first_activity]
-					activity_time = datetime.datetime.combine(date, datetime.time(16 + first_activity))
-					for interval in remind_intervals:
-						run_time = activity_time - datetime.timedelta(minutes=interval)
-						message = f"{role_mention} {activity} in {interval} minutes"
-						ping_id = f"{day.get_formatted_name()} {interval} min reminder"
-						self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, message], id=ping_id, replace_existing=True, jobstore='pings')
+			# TODO: Unique job ID for VODs, better ID for days
+			def add_reminders(msg_start, index, search_list, jobstore, id=None):
+				item = search_list[index]
+				time = datetime.datetime.combine(date, datetime.time(16 + index))
+				for interval in remind_intervals:
+					run_time = time - datetime.timedelta(minutes=interval)
+					message = f"{msg_start} {item} in {interval} minutes"
+					ping_id = str(index) if not id else f"{id} {interval} min reminder"
+					self.add_job(bot.send_message, 'date', run_date=run_time, args=[channel, message], id=ping_id, replace_existing=True, jobstore=jobstore)
+
+			# TODO: no VODs being scheduled
+			vods = day.get_vods()
+			for vod in vods:
+				add_reminders("Player VOD for", vod, day.notes, 'vods')
+			for job in self.get_jobs(jobstore='vods'):
+				if not int(job.id) in vods:
+					self.remove_job(job.id, jobstore='vods')
+
+			first_activity = day.first_activity(remind_activities)
+			if first_activity != -1:
+				# post the schedule at 9 AM 
+				morning_runtime = datetime.datetime.combine(date, datetime.time(9))
+				morning_ping_id = day.name + "_morning_ping"
+				embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
+				self.add_job(bot.send_message, 'date', run_date=morning_runtime, args=[channel], kwargs={'embed': embed}, id=morning_ping_id, replace_existing=True, jobstore='pings')
+
+				add_reminders(role_mention, first_activity, day.activities, 'pings', id=day)
