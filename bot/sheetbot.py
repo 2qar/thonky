@@ -13,7 +13,7 @@ from .schedules import WeekSchedule
 class SheetScraper():
 	""" Used for snatching some useful information from a sheet using a given doc key """
 
-	script_scope = ['http://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
+	script_scope = ['https://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
 	script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
 
 	def __init__(self, doc_key):
