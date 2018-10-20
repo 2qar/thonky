@@ -36,18 +36,20 @@ class DaySchedule():
 	def __str__(self):
 		return f"{self.name}, {self.date}"
 
-#TODO: Convert to iterator 
 class WeekSchedule():
 	def __init__(self, days):
 		self.days = days
 
+	def __iter__(self):
+		yield from self.days
+
 	def get_day(self, name):
-		for day in self.days:
+		for day in self:
 			if name.lower() == day.name.lower():
 				return day
 
 	def __str__(self):
 		week_string = ""
-		for day in self.days:
+		for day in self:
 			week_string += str(day) + "\n"
 		return week_string
