@@ -5,7 +5,6 @@ from ..server_info import ServerInfo
 from ..dbhandler import DBHandler
 
 #TODO: Make help method
-#TODO: Make this work with server info
 class UpdateCommand():
 	async def invoke(bot, server_id, channel=None):
 		should_send_messages = channel != None

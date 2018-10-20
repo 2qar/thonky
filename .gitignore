@@ -11,3 +11,4 @@ config.yaml
 # secret things
 client_secret.json
 token.json
+service_account.json

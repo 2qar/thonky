@@ -26,7 +26,7 @@ class SheetScraper():
 
 		print("Authenticating Google API...")
 		scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-		credentials = ServiceAccountCredentials.from_json_keyfile_name('bot/Scrim Schedule Bot-f210d5f93412.json', scope)
+		credentials = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
 		self.gc = gspread.authorize(credentials)
 		print("Authenticated.")
 
@@ -87,7 +87,11 @@ class SheetScraper():
 		request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
 		service = self.get_service()
 		response = service.scripts().run(body=request, scriptId=SheetScraper.script_id).execute()
-		notes = response['response']['result']
+		try:
+			notes = response['response']['result']
+		except KeyError as e:
+			print(f"ERROR grabbing notes on sheet with key [{self.doc_key}].\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
+			notes = [''] * 6
 		
 		activity_sheet = self.get_sheet("Weekly Schedule")
 		day_rows = activity_sheet.range("B3:B9")
