@@ -2,7 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
 import datetime
 import calendar
-import yaml
+import json
 
 from .formatter import Formatter
 from .player_saver import PlayerSaver
@@ -16,10 +16,10 @@ class PingScheduler(AsyncIOScheduler):
 		self.add_jobstore(MemoryJobStore(), alias='vods')
 
 		self.server_id = server_id
-		with open('config.yaml') as file:
-			self.config = [doc for doc in yaml.safe_load_all(file)][1]
+		with open('config.json') as file:
+			self.config = json.load(file)
 		self.server_info = server_info
-		self.save_day_num = list(calendar.day_name).index(self.config['save_config']['save_day'].title())
+		self.save_day_num = list(calendar.day_name).index(self.config['save_day'].title())
 
 	def init_scheduler(self, bot, update_command):
 		#TODO: Load config once and pass it to the 3 methods below
@@ -32,7 +32,7 @@ class PingScheduler(AsyncIOScheduler):
 		self.print_jobs()
 
 	def init_save_player_data(self, save_day=None):
-		save_time = self.config['save_config']['save_time']
+		save_time = self.config['save_time']
 		scraper = self.server_info.scraper
 		players = self.server_info.players
 		week_schedule = self.server_info.week_schedule
@@ -61,7 +61,7 @@ class PingScheduler(AsyncIOScheduler):
 
 	# TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
 	def init_auto_update(self, bot, update_command):
-		update_interval = self.config['intervals']['update_interval']
+		update_interval = self.config['update_interval']
 		self.add_job(update_command, 'interval', minutes=update_interval, args=[bot, self.server_id], id="update_schedule")
 	
 	def init_schedule_pings(self, bot):

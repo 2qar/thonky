@@ -1,5 +1,4 @@
 import psycopg2
-import yaml
 import json
 
 def format_arrays(string):
@@ -16,9 +15,9 @@ def dictify(data, fields):
 
 class DBHandler():
 	def __init__(self):
-		with open('config.yaml') as config_file:
-			cfg = [doc for doc in yaml.safe_load_all(config_file)][-1]
-		self.conn = psycopg2.connect(dbname=cfg['db_name'], user=cfg['db_user'], password=cfg['db_pass'], host=cfg['db_ip'])
+		with open('config.json') as config_file:
+			cfg = json.load(config_file)
+		self.conn = psycopg2.connect(dbname='thonkydb', user=cfg['db_user'], password=cfg['db_pw'], host=cfg['db_host'])
 		self.cursor = self.conn.cursor()
 
 	def __enter__(self):

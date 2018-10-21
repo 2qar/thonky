@@ -6,9 +6,9 @@ __pycache__/
 *.log
 Pipfile
 Pipfile.lock
-config.yaml
+config.json
 
 # secret things
-client_secret.json
 token.json
+client_secret.json
 service_account.json

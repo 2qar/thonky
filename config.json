@@ -1,0 +1,10 @@
+{
+	"main_token": "",
+	"test_token": "",
+	"save_day": "Saturday",
+	"save_time": 10,
+	"update_interval": 30,
+	"db_user": "",
+	"db_pw": "",
+	"db_host": ""
+}
