@@ -171,15 +171,15 @@ class Formatter():
 
 		embed.set_thumbnail(url=team_info['logo'])
 		
-		players_with_info = [player for player in team_info['players'] if not isinstance(player['info'], str)]
+		players_with_info = [player for player in team_info['players'] if player['info']]
 		players =  sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
 
 		def format_player_info(player):
-			if isinstance(player['info'], str):
+			if not player['info']:
 				return ":ghost: " + player['name']
 			else:
-				role_emote = overbuff_role_emotes[player['info']['role']]
-				sr = player['info']['sr']
+				role_emote = overbuff_role_emotes[player['info'].get_role()[0]]
+				sr = player['info'].get_sr()
 				if sr == 0: sr = '???'
 				return f"{role_emote} {player['name']}: {sr}"
 
