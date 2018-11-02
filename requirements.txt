@@ -1,9 +1,8 @@
 APScheduler==3.5.2
 psycopg2==2.7.5
 pytz==2018.3
-discord.py==0.16.12
 aiohttp==1.0.5
 gspread==3.0.1
 beautifulsoup4==4.6.3
-discord==0.0.2
 google_api_python_client==1.7.4
+discord.py==1.0.0
