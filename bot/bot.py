@@ -1,12 +1,5 @@
 import discord
 import asyncio
-import logging
-
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding = 'utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
 
 from .formatter import sheet_url
 from .server_info import ServerInfo
@@ -33,7 +26,6 @@ bot
 '''
 
 #TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
-#TODO: Make a systemd unit so this can auto reboot if it crashes on the pi
 
 class Bot(discord.Client):
 	def __init__(self, token):

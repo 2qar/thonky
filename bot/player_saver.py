@@ -1,7 +1,6 @@
 from .day import Day
 from .dbhandler import DBHandler
 
-base_player_dir = "servers/{}/players"
 class PlayerSaver():
 	def save_players(server_id, players, week_schedule):
 		week = week_schedule.days[0].date.replace('/', '-')

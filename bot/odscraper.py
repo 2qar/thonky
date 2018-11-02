@@ -122,5 +122,3 @@ async def get_other_team_info(od_round, team_id):
 
     team_info['match_link'] = match_link
     return team_info
-
-print(asyncio.get_event_loop().run_until_complete(get_other_team_info(9, '

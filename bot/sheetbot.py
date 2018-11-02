@@ -6,7 +6,6 @@ from oauth2client import file as oauth_file, client, tools
 
 from .players import Player
 from .players import Players
-from .day import Day
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
 
