@@ -163,48 +163,6 @@ class Formatter():
 
 		return embed
 
-	def get_enemy_team_info(od_round, team_info):
-		title = f"Match against {team_info['name']} in Round {od_round}"
-		embed = Embed()
-		embed.colour = Colour.red()
-		embed.set_author(name=title, url=team_info['match_link'], icon_url=battlefy_logo)
-
-		embed.set_thumbnail(url=team_info['logo'])
-		
-		players_with_info = [player for player in team_info['players'] if player['info']]
-		players =  sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
-
-		def format_player_info(player):
-			if not player['info']:
-				return ":ghost: " + player['name']
-			else:
-				role_emote = overbuff_role_emotes[player['info'].get_role()[0]]
-				sr = player['info'].get_sr()
-				if sr == 0: sr = '???'
-				return f"{role_emote} {player['name']}: {sr}"
-
-		player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
-
-		def get_top_average():
-			top_players = players[:6]
-
-			avg = 0
-			for player in top_players:
-				avg += player['info']['sr']
-
-			return int(avg / len(top_players))
-
-		if len(players) >= 6:
-			average_sr = f"**Average SR: {team_info['sr_avg']}**\n"
-			player_string = average_sr + player_string
-			
-			top_average = f"Top 6 Average: {get_top_average()}"
-			embed.add_field(name=top_average, value=player_string)
-		else:
-			embed.add_field(name=f"Average SR: {team_info['sr_avg']}")
-
-		return embed
-
 	def get_week_activity_schedule(server_id, week_schedule, start_time):
 		week = week_schedule.days[0].date
 		embed = Formatter.get_template_embed(server_id, f"Week of {week}")

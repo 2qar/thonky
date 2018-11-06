@@ -3,14 +3,8 @@ import asyncio
 from bs4 import BeautifulSoup
 import pybuff
 
-import random
-
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-
 match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season-3-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{}'
-
-# raw player list: https://dtmwra1jsgyb0.cloudfront.net/tournaments/5b5e98399a8f8503cd0a07fd/participants
-#players = aiohttp.get('https://dtmwra1jsgyb0.cloudfront.net/tournaments/5b5e98399a8f8503cd0a07fd/participants').json()
 
 class LinkNotFound(Exception):
         """Raised when an important link gives a status code other than 200"""
@@ -100,7 +94,6 @@ async def get_match(od_round, team_id):
                 if get_team_id(match[key]) == team_id:
                     return match
 
-# import this method into formatter
 async def get_other_team_info(od_round, team_id):
     '''
     Get information on the team we're matched up against in the given round (od_round)
@@ -118,7 +111,7 @@ async def get_other_team_info(od_round, team_id):
     for key in ['top', 'bottom']:
             current_team_id = get_team_id(match[key])
             if current_team_id != team_id:
-                    team_info = await get_team_info(current_team_id)
+                team_info = await get_team_info(current_team_id)
 
     team_info['match_link'] = match_link
     return team_info
