@@ -8,7 +8,7 @@ class ODScraper:
     def __init__(self, bot):
         self.bot = bot
 
-    async def get_info_from_id(od_round, server_id):
+    def get_info_from_id(od_round, server_id):
         with DBHandler() as handler:
             config = handler.get_server_config(server_id)
         if config:
@@ -60,22 +60,20 @@ class ODScraper:
 
         return embed
 
-    @commands.command()
-    async def od(self, ctx, round_num):
-        channel = ctx.message.channel
-
+    @commands.command(pass_context=True)
+    async def od(self, ctx, od_round):
         try:
-            int(round_num)
+            int(od_round)
         except:
-            channel.send("Invalid round number.")
+            await ctx.send("Invalid round number.")
             return
 
-        enemy_info = ODScraper.get_info_from_id(ctx.server.id)
+        enemy_info = ODScraper.get_info_from_id(od_round, ctx.guild.id)
         if info:
-            embed = ODScraper.format_other_team_info(round_num, enemy_info)
-            channel.send(embed=embed)
+            embed = ODScraper.format_other_team_info(od_round, enemy_info)
+            await ctx.send(embed=embed)
         else:
-            channel.send("No OD team ID set.")
+            await ctx.send("No OD team ID set.")
 
 def setup(bot):
     bot.add_cog(ODScraper(bot))
