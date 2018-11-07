@@ -1,5 +1,7 @@
-import discord
+from discord.ext.commands import Bot as DiscordBot
 import asyncio
+import importlib
+import os
 
 from .server_info import ServerInfo
 from .dbhandler import DBHandler
@@ -20,14 +22,22 @@ bot
 
 #TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
 
-class Bot(discord.Client):
+class Bot(DiscordBot):
     def __init__(self, token):
-        super().__init__()
+        super().__init__('!')
         self.run(token)
+
+    def add_cogs(self):
+        for cog in os.listdir('bot/cogs'):
+            if os.path.exists(f'bot/cogs/{cog}/cog.py'):
+                module = importlib.import_module(f'.cogs.{cog}.cog', package='bot')
+                getattr(module, 'setup')(self)
     
     async def on_ready(self):
-        playing = discord.Game(name="with spreadsheets", url=sheet_url, type=1)
-        await self.change_presence(game=playing)
+        #playing = discord.Game(name="with spreadsheets", url=sheet_url, type=1)
+        #await self.change_presence(game=playing)
+
+        self.add_cogs()
 
         self.server_info = {}
         with DBHandler() as handler:
