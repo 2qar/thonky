@@ -1,37 +1,29 @@
 from pytz import timezone
 import datetime
-import calendar
+from collections import namedtuple
 
 class TimezoneHelper():
-	def get_timezone(timezone_str):
-		timezone_str = timezone_str.upper()
-		pacific_zones = ["PT", "PST", "PDT"]
-		mountain_zones = ["MT", "MST", "MDT"]
-		central_zones = ["CT", "CST", "CDT"]
-		eastern_zones = ["ET", "EST", "EDT"]
+    def get_timezone(tz: str):
+        tz = tz.upper()
 
-		zone = ""
-		if timezone_str in pacific_zones:
-			zone = "US/Pacific"
-		elif timezone_str in mountain_zones:
-			zone = "US/Mountain"
-		elif timezone_str in central_zones:
-			zone = "US/Central"
-		elif timezone_str in eastern_zones:
-			zone = "US/Eastern"
-		return timezone(zone)
+        Zone = namedtuple('Zone', ('abbreviations', 'pytz_zone'))
+        pacific_zones = Zone(["PT", "PST", "PDT"], 'US/Pacific')
+        mountain_zones = Zone(["MT", "MST", "MDT"], 'US/Mountain')
+        central_zones = Zone(["CT", "CST", "CDT"], 'US/Central')
+        eastern_zones = Zone(["ET", "EST", "EDT"], 'US/Eastern')
+        zones = [pacific_zones, mountain_zones, central_zones, eastern_zones]
 
-	def get_start_time(tz):
-		utc_now = datetime.datetime.utcnow()
-		# starting time = 4 PM PDT
-		utc_start = datetime.datetime(utc_now.year, utc_now.month, utc_now.day, 23, 0, 0)
-		tz_start = tz.localize(utc_start)
-		hour = tz_start.hour + (tz_start.utcoffset().total_seconds() / 3600)
-		hour %= 12
-		hour = int(hour)
-		timezone = tz_start.tzinfo.tzname(tz_start)
-		return [hour, timezone]
+        for zone in zones:
+            if tz in zone.abbreviations:
+                return timezone(zone.pytz_zone)
 
-	def get_today_name(tz):
-		day_int = tz.localize(datetime.datetime.utcnow()).weekday()
-		return calendar.day_name[day_int]
+    def get_start_time(tz):
+        utc_now = datetime.datetime.utcnow()
+        # starting time = 4 PM PDT
+        utc_start = datetime.datetime(utc_now.year, utc_now.month, utc_now.day, 23, 0, 0)
+        tz_start = tz.localize(utc_start)
+        hour = tz_start.hour + (tz_start.utcoffset().total_seconds() / 3600)
+        hour %= 12
+        hour = int(hour)
+        timezone = tz_start.tzinfo.tzname(tz_start)
+        return [hour, timezone]

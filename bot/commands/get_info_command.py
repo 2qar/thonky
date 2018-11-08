@@ -7,12 +7,9 @@ import random
 
 from bot.timezonehelper import TimezoneHelper
 from bot.formatter import Formatter
-from bot.odscraper import get_other_team_info
 from bot.dbhandler import DBHandler
 
-#TODO: Break this up into a bunch of subcommands (they can all still share a cog tho)
-#       !check = get_player_at_time with optional third arg for day
-#       !avg instead of (!get <player> avg)
+
 class GetInfoCommand():
 	async def invoke(bot, message):
 		def get_player_by_name(server_info, name):
