@@ -7,7 +7,7 @@ class Player():
         self.availability = availability
 
     def get_availability_for_day(self, day):
-        start = Day[day.upper()].value
+        start = day * 6
         return self.availability[start:start + 6]
 
     def get_availability_at_time(self, day, time, start_time):
