@@ -4,7 +4,7 @@ import typing
 import datetime
 import calendar
 
-from ...formatter import get_formatter
+from ...formatter import get_formatter, Formatter
 from ...timezonehelper import TimezoneHelper
 from ...dbhandler import DBHandler
 

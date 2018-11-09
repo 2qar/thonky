@@ -1,17 +1,31 @@
+from discord import NotFound
+
 from .sheetbot import SheetScraper
 from .ping_scheduler import PingScheduler
+from .dbhandler import DBHandler
+
 
 class ServerInfo:
-    def __init__(self, doc_key, server_id, bot, update_command):
+    def __init__(self, guild_id, config, bot):
+        self.guild_id = guild_id
+        self.config = config
         self.bot = bot
 
-        self.scraper = SheetScraper(doc_key)
+        self.scraper = SheetScraper(config['doc_key'])
         self.players = self.scraper.get_players()
         self.week_schedule = self.scraper.get_week_schedule()
-        self.scanning = False
-        self.scheduler = PingScheduler(server_id, self)
-        self.update_command = update_command
-        self.scheduler.init_scheduler(bot, update_command)
+        self.scheduler = PingScheduler(guild_id, self)
+        self.scheduler.init_scheduler(self)
+
+        self.scanning = True
+
+    def get_ping_channel(self):
+        with DBHandler() as handler:
+            channel_id = handler.get_server_config()['announce_channel_id']
+            try:
+                return self.bot.get_channel(channel_id)
+            except NotFound:
+                return None
 
     async def update(self, channel=None):
         async def try_send(msg):

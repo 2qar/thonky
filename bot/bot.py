@@ -1,4 +1,5 @@
 from discord.ext.commands import Bot as DiscordBot
+from discord import Game
 import asyncio
 import importlib
 import os
@@ -20,7 +21,8 @@ bot
 	Pass the bot and channel to the formatter and the formatter constructs embeds AND sends the message
 '''
 
-#TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
+# TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
+
 
 class Bot(DiscordBot):
     def __init__(self, token):
@@ -34,8 +36,8 @@ class Bot(DiscordBot):
                 getattr(module, 'setup')(self)
     
     async def on_ready(self):
-        #playing = discord.Game(name="with spreadsheets", url=sheet_url, type=1)
-        #await self.change_presence(game=playing)
+        playing = Game("with spreadsheets")
+        await self.change_presence(activity=playing)
 
         self.add_cogs()
 
@@ -49,11 +51,12 @@ class Bot(DiscordBot):
     async def on_guild_join(self, guild):
         await self.wait_until_ready()
 
-        Bot.create_guild_config(guild.id)
+        self.create_guild_info(guild.id)
         # send a message that's like "hey admins you should !set_sheet and !set_team"
         # also mention the default settings
         # also mention setting the ping channel
 
+    @staticmethod
     def create_guild_config(guild, handler=None):
         print(f"Creating config for server with ID [{guild.id}]")
 
@@ -74,6 +77,6 @@ class Bot(DiscordBot):
         if config:
             doc_key = config['doc_key']
             if doc_key:
-                self.server_info[guild_id] = ServerInfo(doc_key, guild_id, self, UpdateCommand.invoke)
+                self.server_info[guild_id] = ServerInfo(guild_id, config, self)
         else:
             Bot.create_guild_config(guild_id, handler=handler)
