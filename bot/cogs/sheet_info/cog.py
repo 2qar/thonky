@@ -4,12 +4,10 @@ import typing
 import datetime
 import calendar
 
-from ...formatter import Formatter
+from ...formatter import get_formatter
 from ...timezonehelper import TimezoneHelper
 
 
-# TODO: move formatter into this folder and make it instantiable
-# Instantiate Formatter with a given timezone and start time (maybe get start time from tz)
 class SheetInfo:
     def __init__(self, bot):
         self.bot = bot
@@ -39,22 +37,17 @@ class SheetInfo:
             day = datetime.datetime.today().weekday()
         day = SheetInfo.day_name(day)
 
-        if not tz:
-            start_time = 4
-        else:
-            try:
-                start_time = TimezoneHelper.get_start_time(tz)
-            except:
-                await ctx.send(f"Invalid timezone: \"{tz}\"")
-                return
-
         server_id = ctx.guild.id
         player = self.get_player_by_name(server_id, player_name)
         if player:
-            embed = Formatter.get_player_on_day(server_id, player, day, start_time)
-            await ctx.send(embed=embed)
+            formatter = get_formatter(tz)
+            if formatter:
+                embed = formatter.get_player_on_day(server_id, player, day)
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send(f"Invalid timezone: \"{tz}\"")
         else:
-            await ctx.send(f"Player \"{player_name}\"")
+            await ctx.send(f"No player named \"{player_name}\"")
 
 
 def setup(bot):

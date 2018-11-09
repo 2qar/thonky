@@ -52,7 +52,7 @@ class GetInfoCommand():
 		try:
 			tz = TimezoneHelper.get_timezone(split_msg[-1])
 			del(split_msg[-1])
-			start_info = TimezoneHelper.get_start_time(tz)
+			start_info = TimezoneHelper.get_start_time
 			start = start_info[0]
 			Formatter.zone = start_info[1]
 			print("Start Time: ", start)
