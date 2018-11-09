@@ -1,8 +1,6 @@
 import asyncio
 import calendar
 import datetime
-import pytz
-from pytz import timezone
 import random
 
 from bot.timezonehelper import TimezoneHelper

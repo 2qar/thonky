@@ -41,35 +41,39 @@ class Bot(DiscordBot):
 
         self.server_info = {}
         with DBHandler() as handler:
-            for server in self.servers:
-                server_config = handler.get_server_config(server.id)
-                if server_config:
-                    doc_key = server_config['doc_key']
-                    if not doc_key:
-                        print(f"No doc_key provided for server \"{server.name}\" with ID [{server.id}].")
-                        continue
-                    else:
-                        self.server_info[server.id] = ServerInfo(doc_key, server.id, self, UpdateCommand.invoke)
-                else:
-                    print(f"Failed to get config for server \"{server.name}\" with ID [{server.id}].")
-                    Bot.create_server_config(server)
+            for guild in self.guilds:
+                self.create_guild_info(guild.id, handler=handler)
 
         print("Ready! :)")
             
-    async def on_server_join(self, server):
-            await self.wait_until_ready()
+    async def on_guild_join(self, guild):
+        await self.wait_until_ready()
 
-            Bot.create_server_config(server.id)
-            # send a message that's like "hey admins you should !set_sheet and !set_team"
-            # also mention the default settings
-            # also mention setting the ping channel
+        Bot.create_guild_config(guild.id)
+        # send a message that's like "hey admins you should !set_sheet and !set_team"
+        # also mention the default settings
+        # also mention setting the ping channel
 
-    def create_server_config(server):
-            print(f"Creating config for server with ID [{server.id}]")
+    def create_guild_config(guild, handler=None):
+        print(f"Creating config for server with ID [{guild.id}]")
 
+        if handler:
+            if not handler.get_server_config(guild.id):
+                handler.add_server_config(guild.id)
+        else:
             with DBHandler() as handler:
-                    if not handler.get_server_config(server.id):
-                            handler.add_server_config(server.id)
-	
-if __name__ == "__main__":
-	main()
+                if not handler.get_server_config(guild.id):
+                    handler.add_server_config(guild.id)
+
+    def create_guild_info(self, guild_id, handler=None):
+        if handler:
+            config = handler.get_server_config(guild_id)
+        else:
+            with DBHandler() as handler:
+                config = handler.get_server_config(guild_id)
+        if config:
+            doc_key = config['doc_key']
+            if doc_key:
+                self.server_info[guild_id] = ServerInfo(doc_key, guild_id, self, UpdateCommand.invoke)
+        else:
+            Bot.create_guild_config(guild_id, handler=handler)
