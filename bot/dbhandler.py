@@ -1,9 +1,12 @@
+import typing
 import psycopg2
 import json
+
 
 def format_arrays(string):
     """ Format arrays to be SQL friendly :) """
     return string.replace('[', '{').replace(']', '}')
+
 
 def dictify(data, fields):
     """ Convert a tuple to a dict with the given keys """
@@ -26,32 +29,32 @@ class DBHandler():
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def get_table_fields(self, table_name):
+    def get_table_fields(self, table_name: str):
         self.cursor.execute(f"""
                 SELECT column_name FROM information_schema.columns
                 WHERE table_name='{table_name}'""")
         fields = [field[0] for field in self.cursor.fetchall()]
 
         if 'server_id' in fields:
-                fields = fields[1:]
+            fields = fields[1:]
 
         return fields
 
-    def get_server_config(self, server_id):
+    def get_server_config(self, server_id: int):
         self.cursor.execute("""
                 SELECT * FROM server_config 
                 WHERE server_id = %s
-                """, 
+                """,
                 (server_id,))
 
         return self.format_sql_data('server_config')
 
-    def add_server_config(self, server_id):
+    def add_server_config(self, server_id: int):
         with open('config_base.json') as base:
             config_base = json.load(base)
 
         formatted_config_base = f"'{server_id}', "
-        
+
         def format_item(key):
             value = str(config_base[key[0]])
             value = value.replace("'", '"')
@@ -67,7 +70,7 @@ class DBHandler():
         self.cursor.execute(query)
         self.conn.commit()
 
-    def update_server_config(self, server_id, key, value):
+    def update_server_config(self, server_id: int, key: str, value):
         query = f"""
                 UPDATE server_config
                 SET {key} = '{value}'
@@ -77,7 +80,7 @@ class DBHandler():
         self.cursor.execute(query)
         self.conn.commit()
 
-    def get_player_data(self, server_id, name, date=None):
+    def get_player_data(self, server_id: int, name: str, date: typing.Optional[str]=None):
         date_str = f"AND date = '{date}'" if date else ''
         self.cursor.execute(f"""
                 SELECT * FROM player_data
@@ -87,7 +90,7 @@ class DBHandler():
 
         return self.format_sql_data('player_data')
 
-    def add_player_data(self, server_id, name, date, availability):
+    def add_player_data(self, server_id: int, name: str, date: str, availability: typing.List[str]):
         friendly_availability = str(availability).replace("'", '"')
         query = f"""
                 INSERT INTO player_data (server_id, name, date, availability)
@@ -97,17 +100,18 @@ class DBHandler():
         self.cursor.execute(query)
         self.conn.commit()
 
-    def format_sql_data(self, table_name):
+    def format_sql_data(self, table_name: str):
         data = self.cursor.fetchall()
         fields = self.get_table_fields(table_name)
 
-        if not data: return
+        if not data:
+            return
 
         if len(data) > 1:
             return [dictify(entry[1:], fields) for entry in data]
         else:
             return dictify(data[0][1:], fields)
-            
+
     def close(self):
         self.cursor.close()
         self.conn.close()

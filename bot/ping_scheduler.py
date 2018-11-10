@@ -4,7 +4,7 @@ import datetime
 import calendar
 import json
 
-from .formatter import Formatter
+from .formatter import get_formatter
 from .player_saver import PlayerSaver
 from .dbhandler import DBHandler
 
@@ -68,7 +68,6 @@ class PingScheduler(AsyncIOScheduler):
     def init_schedule_pings(self, channel):
         with DBHandler() as handler:
             config = handler.get_server_config(self.server_id)
-            announce_channel = config['announce_channel']
             role_mention = config['role_mention']
             remind_activities = [activity.lower() for activity in config['remind_activities']]
             remind_intervals = config['remind_intervals']
@@ -112,7 +111,7 @@ class PingScheduler(AsyncIOScheduler):
                 # post the schedule at 9 AM
                 morning_runtime = datetime.datetime.combine(date, datetime.time(9))
                 morning_ping_id = day.name + "_morning_ping"
-                embed = Formatter.get_day_schedule(self.server_id, self.server_info.players, day.name, 4)
+                embed = get_formatter('PST').get_day_schedule(self.server_id, self.server_info.players, day_index)
                 self.add_job(
                     channel.send,
                     'date',

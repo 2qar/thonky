@@ -21,7 +21,7 @@ class ServerInfo:
 
     def get_ping_channel(self):
         with DBHandler() as handler:
-            channel_id = handler.get_server_config()['announce_channel']
+            channel_id = handler.get_server_config(self.guild_id)['announce_channel']
             try:
                 return self.bot.get_channel(channel_id)
             except NotFound:
