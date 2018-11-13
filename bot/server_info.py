@@ -17,7 +17,7 @@ class ServerInfo:
         self.scheduler = PingScheduler(guild_id, self)
         self.scheduler.init_scheduler(self)
 
-        self.scanning = True
+        self.scanning = False
 
     def get_ping_channel(self):
         with DBHandler() as handler:
@@ -44,7 +44,10 @@ class ServerInfo:
         scraper.authenticate()
         self.players = scraper.get_players()
         self.week_schedule = scraper.get_week_schedule()
-        self.scheduler.init_schedule_pings(self.bot)
+
+        ping_channel = self.get_ping_channel()
+        if ping_channel:
+            self.scheduler.init_schedule_pings(ping_channel)
 
         self.scanning = False
         await try_send("Finished updating. :)")

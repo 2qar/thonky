@@ -16,7 +16,7 @@ def dictify(data, fields):
     return formatted_data
 
 
-class DBHandler():
+class DBHandler:
     def __init__(self):
         with open('config.json') as config_file:
                 cfg = json.load(config_file)
@@ -84,13 +84,14 @@ class DBHandler():
         date_str = f"AND date = '{date}'" if date else ''
         self.cursor.execute(f"""
                 SELECT * FROM player_data
-                WHERE server_id = %s AND name = %s {date_str}
+                WHERE server_id = %s AND
+                LOWER(name) = LOWER(%s) {date_str}
                 """,
                 (server_id, name))
 
         return self.format_sql_data('player_data')
 
-    def add_player_data(self, server_id: int, name: str, date: str, availability: typing.List[str]):
+    def add_player_data(self, server_id: int, name: str, date: str, availability: typing.Dict):
         friendly_availability = str(availability).replace("'", '"')
         query = f"""
                 INSERT INTO player_data (server_id, name, date, availability)

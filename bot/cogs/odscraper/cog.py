@@ -1,19 +1,34 @@
 from discord.ext import commands
+from discord import Embed, Colour
 import asyncio
 
 from .scraper import get_other_team_info
 from ...dbhandler import DBHandler
+from ...formatter import role_emotes
+
+battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
+
+overbuff_role_emotes = {
+    "Offense": role_emotes['DPS'],
+    "Defense": role_emotes['DPS'],
+    "Tank": role_emotes['Tanks'],
+    "Support": role_emotes['Supports'],
+    "???": ":ghost:"
+}
+
 
 class ODScraper:
     def __init__(self, bot):
         self.bot = bot
 
-    def get_info_from_id(od_round, server_id):
+    @staticmethod
+    async def get_info_from_id(od_round, server_id):
         with DBHandler() as handler:
             config = handler.get_server_config(server_id)
         if config:
-            return get_other_team_info(od_round, config['team_id'])
+            return await get_other_team_info(od_round, config['team_id'])
 
+    @staticmethod
     def format_other_team_info(od_round, team_info):
         title = f"Match against {team_info['name']} in Round {od_round}"
         embed = Embed()
@@ -64,16 +79,19 @@ class ODScraper:
     async def od(self, ctx, od_round):
         try:
             int(od_round)
-        except:
+        except ValueError:
             await ctx.send("Invalid round number.")
             return
 
-        enemy_info = ODScraper.get_info_from_id(od_round, ctx.guild.id)
-        if info:
+        message = await ctx.send("Getting match info...")
+
+        enemy_info = await ODScraper.get_info_from_id(od_round, ctx.guild.id)
+        if enemy_info:
             embed = ODScraper.format_other_team_info(od_round, enemy_info)
-            await ctx.send(embed=embed)
+            await message.edit(content=None, embed=embed)
         else:
             await ctx.send("No OD team ID set.")
+
 
 def setup(bot):
     bot.add_cog(ODScraper(bot))

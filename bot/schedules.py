@@ -48,6 +48,9 @@ class WeekSchedule():
             if name.lower() == day.name.lower():
                 return day
 
+    def __getitem__(self, day):
+        return self.days[day]
+
     def __str__(self):
         week_string = ""
         for day in self:

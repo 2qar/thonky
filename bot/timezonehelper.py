@@ -19,11 +19,9 @@ class TimezoneHelper():
                 return timezone(zone.pytz_zone)
 
     def get_start_time(tz: str):
-        tz = tz.upper()
-
-        for i, zone in enumerate(zones):
-            if tz in zone.abbreviations:
-                return i + 4
+        timezone = TimezoneHelper.get_timezone(tz)
+        if timezone:
+            return TimezoneHelper.get_start_time_info(timezone)[0]
 
     def get_start_time_info(tz):
         utc_now = datetime.datetime.utcnow()

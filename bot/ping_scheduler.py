@@ -63,7 +63,7 @@ class PingScheduler(AsyncIOScheduler):
     # TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
     def init_auto_update(self, server_info):
         update_interval = self.config['update_interval']
-        self.add_job(server_info.update, 'interval', minutes=update_interval, args=[server_info], id="update_schedule")
+        self.add_job(server_info.update, 'interval', minutes=update_interval, id="update_schedule")
 
     def init_schedule_pings(self, channel):
         with DBHandler() as handler:

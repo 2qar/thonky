@@ -23,14 +23,6 @@ role_emotes = {
         "Coaches": ":books:"
 }
 
-overbuff_role_emotes = {
-        "Offense": role_emotes['DPS'],
-        "Defense": role_emotes['DPS'],
-        "Tank": role_emotes['Tanks'],
-        "Support": role_emotes['Supports'],
-        "???": ":ghost:"
-}
-
 availability_responses = {
         "Yes": "is available",
         "Maybe": "might be available",
@@ -44,8 +36,6 @@ status_emotes = {
         "No": ":x:",
         "Nothing": ":ghost:"
 }
-
-battlefy_logo = 'http://s3.amazonaws.com/battlefy-assets/helix/images/logos/logo.png'
 
 spreadsheet_logo = 'https://www.clicktime.com/images/web-based/timesheet/integration/googlesheets.png'
 
@@ -132,7 +122,7 @@ class Formatter:
         players = server_info.players
         week_schedule = server_info.week_schedule
 
-        day_obj = week_schedule.get_day(day)
+        day_obj = week_schedule[day]
         activity = day_obj.get_activity_at_time(hour, self.start_time)
         title = f"{activity} on {day_obj} at {hour} PM"
         embed = self.get_template_embed(server_id, title)
@@ -159,7 +149,8 @@ class Formatter:
         return embed
 
     def get_day_schedule(self, server_id, players, day):
-        embed = self.get_template_embed(server_id, f"Schedule for {day}")
+        day_name = Formatter.day_name(day)
+        embed = self.get_template_embed(server_id, f"Schedule for {day_name}")
 
         self.add_time_field(embed, "Player Name")
 
@@ -180,8 +171,8 @@ class Formatter:
         return embed
 
     def get_week_activity_schedule(self, server_id, week_schedule):
-        week = week_schedule.days[0].date
-        embed = Formatter.get_template_embed(server_id, f"Week of {week}")
+        week = week_schedule[0].date
+        embed = self.get_template_embed(server_id, f"Week of {week}")
         self.add_time_field(embed, "Times")
 
         def get_formatted_activity_name(activity):
