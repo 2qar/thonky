@@ -77,6 +77,6 @@ class Bot(DiscordBot):
         if config:
             doc_key = config['doc_key']
             if doc_key:
-                self.server_info[guild_id] = ServerInfo(guild_id, config, self)
+                self.server_info[str(guild_id)] = ServerInfo(guild_id, config, self)
         else:
             Bot.create_guild_config(guild_id, handler=handler)

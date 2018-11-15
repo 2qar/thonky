@@ -1,13 +1,11 @@
 from discord.ext import commands
 import typing
-import datetime
 import calendar
 import datetime
 import random
 
 from ...formatter import get_formatter, Formatter
 from ...dbhandler import DBHandler
-from ...timezonehelper import TimezoneHelper
 
 from ..odscraper.cog import ODScraper
 
@@ -23,9 +21,12 @@ class SheetInfo:
         self.bot = bot
 
     def get_player_by_name(self, guild_id: int, player_name: str):
-        for player in self.bot.server_info[guild_id].players.unsorted_list:
+        for player in self.server_info(guild_id).players.unsorted_list:
             if player.name.lower() == player_name.lower():
                 return player
+
+    def server_info(self, guild_id: typing.Union[str, int]):
+        return self.bot.server_info[str(guild_id)]
 
     @staticmethod
     def get_day_int(day: str):
@@ -100,7 +101,7 @@ class SheetInfo:
         if not formatter:
             formatter = get_formatter('PST')
         guild_id = ctx.guild.id
-        server_info = self.bot.server_info[guild_id]
+        server_info = self.server_info(guild_id)
 
         if 'tomorrow' in split:
             if not Formatter.day_name(day) == 'Sunday':
@@ -138,6 +139,7 @@ class SheetInfo:
                     embed = formatter.get_day_schedule(guild_id, server_info.players, day)
                 else:
                     await ctx.send("Invalid day.")
+                    return
 
             if embed:
                 await send_embed(embed)
@@ -187,14 +189,29 @@ class SheetInfo:
                 await ctx.send("Invalid identifier.")
         elif arg_count == 5:
             player_name = split[0].lower()
-            pass
+            player = self.get_player_by_name(guild_id, player_name)
+            if not player:
+                await ctx.send("Invalid player.")
+            else:
+                time = split[2]
+                given_day = split[4].title()
+
+                day_int = SheetInfo.get_day_int(given_day)
+                if not day_int:
+                    await ctx.send("Invalid day.")
+                else:
+                    try:
+                        msg = formatter.get_player_at_time(player, day_int, time)
+                        await ctx.send(msg)
+                    except:
+                        await ctx.send("Invalid time.")
 
     # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)
     async def update(self, ctx):
         guild_id = ctx.guild.id
         try:
-            server_info = self.bot.server_info[guild_id]
+            server_info = self.server_info(guild_id)
         except KeyError:
             ctx.send("No server info for this server.")
             return
