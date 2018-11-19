@@ -70,15 +70,14 @@ class Formatter:
         embed.set_thumbnail(url=thonk_link)
         return embed
 
-    @staticmethod
-    def get_day_availability(player, day, start_time):
+    def get_day_availability(self, player, day):
         data = {}
         availability_on_day = player.get_availability_for_day(day)
 
         for i in range(0, len(availability_on_day)):
             available = availability_on_day[i]
             available_emote = status_emotes[available]
-            time = i + start_time
+            time = i + self.start_time
             data[time] = available_emote
         return data
 
@@ -97,11 +96,13 @@ class Formatter:
     def get_player_on_day(self, server_id: int, player, day: int):
         day_name = Formatter.day_name(day)
         embed = self.get_template_embed(server_id, f"{player.name} on {day_name}")
+        self.add_time_field(embed, "Times")
         embed.set_thumbnail(url=thonk_link)
-        formatted_data = Formatter.get_day_availability(player, day, self.start_time)
 
-        for key in formatted_data:
-            embed.add_field(name=key, value=formatted_data[key], inline=False)
+        availability = player.get_availability_for_day(day)
+        emotes = [status_emotes[response] for response in availability]
+        available_str = ', '.join(emotes)
+        embed.add_field(name="Availability", value=available_str, inline=False)
 
         return embed
 
@@ -157,7 +158,7 @@ class Formatter:
         # add all of the players to the embed
         for player in players.unsorted_list:
             try:
-                availability = Formatter.get_day_availability(player, day, self.start_time)
+                availability = self.get_day_availability(player, day)
                 emotes = [availability[key] for key in availability]
                 formatted_status = ', '.join([emote for emote in emotes])
                 player_name = f"{role_emotes[player.role]} {player.name}"
