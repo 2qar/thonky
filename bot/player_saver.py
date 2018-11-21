@@ -3,24 +3,6 @@ from calendar import day_name as day_names
 from .dbhandler import DBHandler
 
 
-class PlayerSaver:
-    # TODO: Move to Bot
-    @staticmethod
-    def save_players(guild_id, players, week_schedule):
-        week = week_schedule.days[0].date.replace('/', '-')
-
-        with DBHandler() as handler:
-            for player in players.unsorted_list:
-                if not handler.get_player_data(guild_id, player.name, date=week):
-                    availability = {}
-                    for day, day_name in enumerate(day_names):
-                        availability[day_name] = player.get_availability_for_day(day)
-                    handler.add_player_data(guild_id, player.name, week, availability)
-                    print(f"added {player.name} on {week} to db")
-                else:
-                    print(f"{player.name} on {week} already added, skipping")
-
-
 # TODO: Just move the methods from this class to dbhandler.py
 class DataAnalyzer:
     @staticmethod

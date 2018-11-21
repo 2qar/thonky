@@ -1,5 +1,6 @@
 import datetime
 
+
 class DaySchedule():
     def __init__(self, name, date, activities, notes):
         self.name = name
@@ -35,6 +36,7 @@ class DaySchedule():
 
     def __str__(self):
         return f"{self.name}, {self.date}"
+
 
 class WeekSchedule():
     def __init__(self, days):

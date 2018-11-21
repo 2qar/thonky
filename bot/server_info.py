@@ -1,4 +1,5 @@
 from discord import NotFound
+from calendar import day_name as day_names
 
 from .sheetbot import SheetScraper
 from .ping_scheduler import PingScheduler
@@ -26,6 +27,20 @@ class ServerInfo:
                 return self.bot.get_channel(channel_id)
             except NotFound:
                 return None
+
+    def save_players(self):
+        week = self.week_schedule[0].replace('/', '-')
+
+        with DBHandler() as handler:
+            for player in self.players.unsorted_list:
+                if not handler.get_player_data(self.guild_id, player.name, date=week):
+                    availability = {}
+                    for day, day_name in enumerate(day_names):
+                        availability[day_name] = player.get_availability_for_day(day)
+                    handler.add_player_data(self.guild_id, player.name, week, availability)
+                    print(f"added {player.name} on {week} to db")
+                else:
+                    print(f"{player.name} on {week} already added, skipping")
 
     async def update(self, channel=None):
         async def try_send(msg):

@@ -5,7 +5,6 @@ import calendar
 import json
 
 from .formatter import get_formatter
-from .player_saver import PlayerSaver
 from .dbhandler import DBHandler
 
 
@@ -27,14 +26,14 @@ class PingScheduler(AsyncIOScheduler):
         #with DBHandler() as handler:
                 #self.server_info(
 
-        self.init_save_player_data()
+        self.init_save_player_data(server_info)
         self.init_auto_update(server_info)
         channel = server_info.get_ping_channel()
         if channel:
             self.init_schedule_pings(channel)
         self.print_jobs()
 
-    def init_save_player_data(self, save_day=None):
+    def init_save_player_data(self, server_info, save_day=None):
         save_time = self.config['save_time']
         players = self.server_info.players
         week_schedule = self.server_info.week_schedule
@@ -51,13 +50,13 @@ class PingScheduler(AsyncIOScheduler):
         automated_save_missed = today.weekday() == self.save_day_num and today.hour >= save_time
         save_time_as_date = datetime.time(save_time)
         if automated_save_missed:
-            PlayerSaver.save_players(self.server_id, players, week_schedule)
+            server_info.save_players(self.server_id, players, week_schedule)
             next_save_day = today + datetime.timedelta(days=self.save_day_num)
             run_time = datetime.datetime.combine(next_save_day, save_time_as_date)
         else:
             run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
-        self.add_job(PlayerSaver.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
+        self.add_job(server_info.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
         self.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
 
     # TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
@@ -98,7 +97,7 @@ class PingScheduler(AsyncIOScheduler):
                         jobstore=jobstore
                     )
 
-            # TODO: no VODs being scheduled
+            # FIXME: no VODs being scheduled
             vods = day.get_vods()
             for vod in vods:
                 add_reminders("Player VOD for", vod, day.notes, 'vods')
