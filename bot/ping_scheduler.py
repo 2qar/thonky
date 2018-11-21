@@ -50,13 +50,13 @@ class PingScheduler(AsyncIOScheduler):
         automated_save_missed = today.weekday() == self.save_day_num and today.hour >= save_time
         save_time_as_date = datetime.time(save_time)
         if automated_save_missed:
-            server_info.save_players(self.server_id, players, week_schedule)
+            server_info.save_players()
             next_save_day = today + datetime.timedelta(days=self.save_day_num)
             run_time = datetime.datetime.combine(next_save_day, save_time_as_date)
         else:
             run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
-        self.add_job(server_info.save_players, 'date', run_date=run_time, args=[self.server_id, players, week_schedule])
+        self.add_job(server_info.save_players, 'date', run_date=run_time)
         self.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
 
     # TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
