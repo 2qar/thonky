@@ -100,6 +100,8 @@ class SheetInfo:
         formatter = get_formatter(split[-1])
         if not formatter:
             formatter = get_formatter('PST')
+        else:
+            del split[-1]
         guild_id = ctx.guild.id
         server_info = self.server_info(guild_id)
 
