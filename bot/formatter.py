@@ -5,7 +5,7 @@ from discord import Colour
 
 from .player_saver import DataAnalyzer
 from .dbhandler import DBHandler
-from .timezonehelper import TimezoneHelper
+from .timezonehelper import get_start_time
 
 letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:',
                  ':keycap_ten:', ':one::one:', ':one::two:']
@@ -45,7 +45,7 @@ sheet_url = "https://docs.google.com/spreadsheets/d/"
 
 
 def get_formatter(tz: str):
-    start_time = TimezoneHelper.get_start_time(tz)
+    start_time = get_start_time(tz)
     if start_time:
         return Formatter(tz, start_time)
 

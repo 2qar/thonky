@@ -1,4 +1,5 @@
 from pytz import timezone
+from pytz import utc
 import datetime
 from collections import namedtuple
 
@@ -10,26 +11,31 @@ eastern_zones = Zone(["ET", "EST", "EDT"], 'US/Eastern')
 zones = [pacific_zones, mountain_zones, central_zones, eastern_zones]
 
 
-class TimezoneHelper():
-    def get_timezone(tz: str):
-        tz = tz.upper()
+def get_timezone(tz: str):
+    """ Get a pytz.timezone object from a timezone abbreviation. """
+    tz = tz.upper()
 
-        for zone in zones:
-            if tz in zone.abbreviations:
-                return timezone(zone.pytz_zone)
+    for zone in zones:
+        if tz in zone.abbreviations:
+            return timezone(zone.pytz_zone)
 
-    def get_start_time(tz: str):
-        timezone = TimezoneHelper.get_timezone(tz)
-        if timezone:
-            return TimezoneHelper.get_start_time_info(timezone)[0]
 
-    def get_start_time_info(tz):
-        utc_now = datetime.datetime.utcnow()
-        # starting time = 4 PM PDT
-        utc_start = datetime.datetime(utc_now.year, utc_now.month, utc_now.day, 23, 0, 0)
-        tz_start = tz.localize(utc_start)
-        hour = tz_start.hour + (tz_start.utcoffset().total_seconds() / 3600)
-        hour %= 12
-        hour = int(hour)
-        timezone = tz_start.tzinfo.tzname(tz_start)
-        return [hour, timezone]
+def get_start_time(tz: str):
+    zone = get_timezone(tz)
+    if zone:
+        return get_start_time_info(zone)[0]
+
+
+def is_dst(date: datetime):
+    return bool(date.dst())
+
+
+def get_start_time_info(tz: timezone):
+    utc_now = datetime.datetime.utcnow()
+    # starting time = 4 PM PDT
+    utc_start = datetime.datetime(utc_now.year, utc_now.month, utc_now.day, 23, 0, 0, tzinfo=utc)
+    localized = utc_start.astimezone(tz)
+    if localized:
+        if not is_dst(localized):
+            localized += datetime.timedelta(hours=1)
+        return [localized.hour % 12, utc_start.tzname()]
