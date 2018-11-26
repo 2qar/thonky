@@ -25,7 +25,7 @@ def get_start_time(tz: str):
     if zone:
         utc_now = datetime.datetime.utcnow()
         utc_start = datetime.datetime(utc_now.year, utc_now.month, utc_now.day, 23, 0, 0, tzinfo=utc)
-        localized = utc_start.astimezone(tz)
+        localized = utc_start.astimezone(zone)
         if localized:
             if not is_dst(localized):
                 localized += datetime.timedelta(hours=1)
