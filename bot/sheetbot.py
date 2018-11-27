@@ -3,112 +3,136 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file as oauth_file, client, tools
+from typing import List, Tuple
+import re
 
 from .players import Player
 from .players import Players
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
 
-class SheetScraper():
-	""" Used for snatching some useful information from a sheet using a given doc key """
 
-	script_scope = ['https://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
-	script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
+class SheetHandler:
+    """ Used for snatching some useful information from a sheet using a given doc key """
 
-	def __init__(self, doc_key):
-		self.doc_key = doc_key
-		self.authenticate()
+    script_scope = ['https://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
+    script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
 
-	def authenticate(self):
-		""" Authenticates the bot for sheets access.
-			Gotta call it before calling any of the other stuff. """
+    def __init__(self, doc_key):
+        self.doc_key = doc_key
+        self.authenticate()
 
-		print("Authenticating Google API...")
-		scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-		credentials = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
-		self.gc = gspread.authorize(credentials)
-		print("Authenticated.")
+    def authenticate(self):
+        """ Authenticates the bot for sheets access.
+            Gotta call it before calling any of the other stuff. """
 
-	def get_service(self):
-		store = oauth_file.Storage('creds/token.json')
-		creds = store.get()
-		if not creds or creds.invalid:
-			flow = client.flow_from_clientsecrets('creds/client_secret.json', SheetScraper.script_scope)
-			creds = tools.run_flow(flow, store)
-		return build('script', 'v1', http=creds.authorize(Http()))
+        print("Authenticating Google API...")
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        credentials = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
+        self.gc = gspread.authorize(credentials)
+        print("Authenticated.")
 
-	def get_sheet(self, sheet_name):
-		return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
+    def get_service(self):
+        store = oauth_file.Storage('creds/token.json')
+        creds = store.get()
+        if not creds or creds.invalid:
+            flow = client.flow_from_clientsecrets('creds/client_secret.json', SheetHandler.script_scope)
+            creds = tools.run_flow(flow, store)
+        return build('script', 'v1', http=creds.authorize(Http()))
 
-	def get_players(self):
-		""" Get all of the players in a nice little bundle :) """
+    def get_sheet(self, sheet_name):
+        return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
 
-		availability = self.get_sheet("Team Availability")
+    def get_players(self):
+        """ Get all of the players in a nice little bundle :) """
 
-		print("Getting player cells...")
-		player_range_end = availability.find("Tanks Available:").row
-		player_range = "C4:C" + str(player_range_end)
-		player_cells = availability.range(player_range)
-		
-		role = ""
-		players = []
-		sorted_players = {}
+        availability = self.get_sheet("Team Availability")
 
-		print("Creating player objects...")
-		for cell in player_cells:
-			if cell.value != '':
-				cells = availability.range('A{0}:AS{0}'.format(cell.row))
-				vals = [val.value for val in cells]
-				if vals[1] != '':
-					role = vals[1]
-					sorted_players[role] = []
-				name = vals[2]
+        print("Getting player cells...")
+        player_range_end = availability.find("Tanks Available:").row
+        player_range = "C4:C" + str(player_range_end)
+        player_cells = availability.range(player_range)
 
-				available_times = vals[3:]
-				for time in range(0, len(available_times)):
-						if available_times[time] == '':
-							available_times[time] = 'Nothing'
-					
-				players.append(Player(name, role, available_times))
+        role = ""
+        players = []
+        sorted_players = {}
 
-		for player in players:
-			sorted_players[player.role].append(player)
+        print("Creating player objects...")
+        for cell in player_cells:
+            if cell.value != '':
+                cells = availability.range('A{0}:AS{0}'.format(cell.row))
+                vals = [val.value for val in cells]
+                if vals[1] != '':
+                    role = vals[1]
+                    sorted_players[role] = []
+                name = vals[2]
 
-		player_obj = Players(sorted_players, players)
+                available_times = vals[3:]
+                for time in range(0, len(available_times)):
+                        if available_times[time] == '':
+                            available_times[time] = 'Nothing'
 
-		print("Done! :)")
-		return player_obj
+                players.append(Player(name, role, available_times))
 
-	def get_week_schedule(self):
-		""" Returns a week schedule object for getting the activities for each day n stuff """
+        for player in players:
+            sorted_players[player.role].append(player)
 
-		# get all of the cell notes
-		request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
-		service = self.get_service()
-		response = service.scripts().run(body=request, scriptId=SheetScraper.script_id).execute()
-		try:
-			notes = response['response']['result']
-		except KeyError as e:
-			print(f"ERROR grabbing notes on sheet with key [{self.doc_key}].\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
-			notes = [''] * 6
-		
-		activity_sheet = self.get_sheet("Weekly Schedule")
-		day_rows = activity_sheet.range("B3:B9")
+        player_obj = Players(sorted_players, players)
 
-		def get_day(row, notes):
-			split = row.value.split()
+        print("Done! :)")
+        return player_obj
 
-			name = split[0]
-			name = name[0:len(name)-1]
+    def get_week_schedule(self):
+        """ Returns a week schedule object for getting the activities for each day n stuff """
 
-			date = split[1]
+        # get all of the cell notes
+        request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
+        service = self.get_service()
+        response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
+        try:
+            notes = response['response']['result']
+        except KeyError as e:
+            print(f"ERROR grabbing notes on sheet with key [{self.doc_key}].\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
+            notes = [''] * 6
 
-			row_range = "C{0}:H{0}".format(row.row)
-			activity_cells = activity_sheet.range(row_range)
-			activities = [activity.value for activity in activity_cells]
+        activity_sheet = self.get_sheet("Weekly Schedule")
+        day_rows = activity_sheet.range("B3:B9")
 
-			return DaySchedule(name, date, activities, notes)
+        def get_day(row, notes):
+            split = row.value.split()
 
-		days = [get_day(row, note) for row, note in zip(day_rows, notes)]
+            name = split[0]
+            name = name[0:len(name)-1]
 
-		return WeekSchedule(days)
+            date = split[1]
+
+            row_range = "C{0}:H{0}".format(row.row)
+            activity_cells = activity_sheet.range(row_range)
+            activities = [activity.value for activity in activity_cells]
+
+            return DaySchedule(name, date, activities, notes)
+
+        days = [get_day(row, note) for row, note in zip(day_rows, notes)]
+
+        return WeekSchedule(days)
+
+    def update_cells(self, sheet_name: str, cell_range: str, values: List[str]) -> Tuple[List[str], List[str]]:
+        """ Updates a range of cells and returns the values before and after. """
+
+        cell_re_raw = '[A-Z]\d{1,2}'
+        cell_re = re.compile(f'{cell_re_raw}:{cell_re_raw}')
+        if not cell_re.match(cell_range):
+            raise ValueError("Cell range format incorrect")
+
+        sheet = self.get_sheet(sheet_name)
+
+        cells = sheet.range(cell_range)
+        if len(values) != len(cells):
+            raise ValueError("Length of values given doesn't match the amount of cells.")
+
+        before = [cell.value for cell in cells]
+        for i, cell in enumerate(cells):
+            cell.value = values[i]
+        sheet.update_cells(cells)
+
+        return before, values

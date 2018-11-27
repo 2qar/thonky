@@ -208,6 +208,10 @@ class SheetInfo:
                     except:
                         await ctx.send("Invalid time.")
 
+    @commands.command(pass_context=True)
+    async def set(self, ctx, *, args):
+        pass
+
     # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)
     async def update(self, ctx):

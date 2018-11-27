@@ -1,7 +1,7 @@
 from discord import NotFound
 from calendar import day_name as day_names
 
-from .sheetbot import SheetScraper
+from .sheetbot import SheetHandler
 from .ping_scheduler import PingScheduler
 from .dbhandler import DBHandler
 
@@ -12,7 +12,7 @@ class ServerInfo:
         self.config = config
         self.bot = bot
 
-        self.scraper = SheetScraper(config['doc_key'])
+        self.scraper = SheetHandler(config['doc_key'])
         self.players = self.scraper.get_players()
         self.week_schedule = self.scraper.get_week_schedule()
         self.scheduler = PingScheduler(guild_id, self)
