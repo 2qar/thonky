@@ -259,7 +259,7 @@ class SheetInfo:
                             range_end = get_range_end(start + time_diff - 1)
 
                 if range_end:
-                    cell_range = f'{range_start}:{range_end}'
+                    cell_range = f'{range_start}{row}:{range_end}{row}'
                     handler = self.server_info(ctx.guild.id).sheet_handler
                     try:
                         handler.update_cells('Weekly Schedule', cell_range, split[2])
