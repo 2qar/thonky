@@ -3,6 +3,7 @@ from discord import Game
 import asyncio
 import importlib
 import os
+from typing import Union
 
 from .server_info import ServerInfo
 from .dbhandler import DBHandler
@@ -57,18 +58,18 @@ class Bot(DiscordBot):
         # also mention setting the ping channel
 
     @staticmethod
-    def create_guild_config(guild, handler=None):
-        print(f"Creating config for server with ID [{guild.id}]")
+    def create_guild_config(guild_id: Union[str, int], handler=None):
+        print(f"Creating config for server with ID [{guild_id}]")
 
         if handler:
-            if not handler.get_server_config(guild.id):
-                handler.add_server_config(guild.id)
+            if not handler.get_server_config(guild_id):
+                handler.add_server_config(guild_id)
         else:
             with DBHandler() as handler:
-                if not handler.get_server_config(guild.id):
-                    handler.add_server_config(guild.id)
+                if not handler.get_server_config(guild_id):
+                    handler.add_server_config(guild_id)
 
-    def create_guild_info(self, guild_id, handler=None):
+    def create_guild_info(self, guild_id: Union[str, int], handler=None):
         if handler:
             config = handler.get_server_config(guild_id)
         else:
