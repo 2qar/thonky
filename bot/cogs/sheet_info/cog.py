@@ -3,9 +3,11 @@ import typing
 import calendar
 import datetime
 import random
+import re
 
 from ...formatter import get_formatter, Formatter
 from ...dbhandler import DBHandler
+from ...timezonehelper import get_start_time
 
 from ..odscraper.cog import ODScraper
 
@@ -208,9 +210,52 @@ class SheetInfo:
                     except:
                         await ctx.send("Invalid time.")
 
-    @commands.command(pass_context=True)
+    # TODO: Make a note that says you have to put underscores in stuff with spaces OR make a command with proper arg
+    #       parsing
+    @commands.command(pass_context=True, hidden=True)
     async def set(self, ctx, *, args):
-        pass
+        split = args.split()
+
+        start_time = get_start_time(split[-1])
+        if start_time:
+            del split[-1]
+        else:
+            start_time = 4
+
+        arg_count = len(args)
+        if arg_count == 3:
+            day = self.get_day_int(split[0])
+            if day:
+                row = 3 + day
+                time_re_raw = '\d{1,2}'
+                time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
+
+                def get_range_end(columns: int): return chr(ord('C') + columns)
+                range_end = None
+                try:
+                    range_end = get_range_end(int(split[1]) - start_time)
+                except ValueError:
+                    match = time_re.match(split[1])
+                    if match:
+                        match_str = match.group()
+                        times = match_str.split('-')
+                        # TODO: Get range_end from these times
+
+                # TODO: Parse values probably
+
+                if range_end:
+                    handler = self.server_info(ctx.guild.id).sheet_handler
+                    try:
+                        # TODO: yeah you know what to do
+                        handler.update_cells()
+                    except ValueError:
+                        ctx.send("Invalid time range.")
+                    except IndexError:
+                        ctx.send("Weird amount of values given for the range given.")
+                else:
+                    ctx.send(f"Invalid time range \"{split[1]}\"")
+            else:
+                ctx.send(f"Invalid day \"{split[0]}\"")
 
     # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)

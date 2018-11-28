@@ -127,12 +127,16 @@ class SheetHandler:
         sheet = self.get_sheet(sheet_name)
 
         cells = sheet.range(cell_range)
-        if len(values) != len(cells):
-            raise ValueError("Length of values given doesn't match the amount of cells.")
+        if len(values) != len(cells) and len(values) != 1:
+            raise IndexError("Length of values given doesn't match the amount of cells.")
 
         before = [cell.value for cell in cells]
-        for i, cell in enumerate(cells):
-            cell.value = values[i]
+        if len(values) > 1:
+            for i, cell in enumerate(cells):
+                cell.value = values[i]
+        else:
+            for cell in cells:
+                cell.value = values[0]
         sheet.update_cells(cells)
 
         return before, values

@@ -12,9 +12,9 @@ class ServerInfo:
         self.config = config
         self.bot = bot
 
-        self.scraper = SheetHandler(config['doc_key'])
-        self.players = self.scraper.get_players()
-        self.week_schedule = self.scraper.get_week_schedule()
+        self.sheet_handler = SheetHandler(config['doc_key'])
+        self.players = self.sheet_handler.get_players()
+        self.week_schedule = self.sheet_handler.get_week_schedule()
         self.scheduler = PingScheduler(guild_id, self)
         self.scheduler.init_scheduler(self)
 
@@ -55,10 +55,10 @@ class ServerInfo:
 
         self.scanning = True
 
-        scraper = self.scraper
-        scraper.authenticate()
-        self.players = scraper.get_players()
-        self.week_schedule = scraper.get_week_schedule()
+        handler = self.sheet_handler
+        handler.authenticate()
+        self.players = handler.get_players()
+        self.week_schedule = handler.get_week_schedule()
 
         ping_channel = self.get_ping_channel()
         if ping_channel:
