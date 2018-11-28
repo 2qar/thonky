@@ -230,24 +230,39 @@ class SheetInfo:
                 time_re_raw = '\d{1,2}'
                 time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
 
+                range_start = start_time
+
                 def get_range_end(columns: int): return chr(ord('C') + columns)
                 range_end = None
+
                 try:
+                    # get range_end from a single num
                     range_end = get_range_end(int(split[1]) - start_time)
                 except ValueError:
                     match = time_re.match(split[1])
+                    # get range_end from a time range ex. 4-5
                     if match:
                         match_str = match.group()
-                        times = match_str.split('-')
-                        # TODO: Get range_end from these times
+                        try:
+                            times = [int(num) for num in match_str.split('-')]
+                        except ValueError:
+                            ctx.send("Invalid time range \"{split[1]}\"")
+                            return
 
-                # TODO: Parse values probably
+                        time_diff = times[1] - times[0]
+                        if time_diff == 1:
+                            range_start = get_range_end(times[1] - start_time)
+                            range_end = range_start
+                        elif times[1] > times[0]:
+                            start = times[0] - start_time
+                            range_start = get_range_end(start)
+                            range_end = get_range_end(start + time_diff - 1)
 
                 if range_end:
+                    cell_range = f'{range_start}:{range_end}'
                     handler = self.server_info(ctx.guild.id).sheet_handler
                     try:
-                        # TODO: yeah you know what to do
-                        handler.update_cells()
+                        handler.update_cells('Weekly Schedule', cell_range, split[2])
                     except ValueError:
                         ctx.send("Invalid time range.")
                     except IndexError:
