@@ -222,55 +222,62 @@ class SheetInfo:
         else:
             start_time = 4
 
+        # TODO: Make this work with the Player Schedule worksheet
+        # TODO: Store cells in WeekSchedule object, update locally, then push
+        def get_range(given_range: str, given_day: int):
+            row = 3 + given_day
+            time_re_raw = '\d{1,2}'
+            time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
+
+            range_start = start_time
+
+            def get_range_end(columns: int): return chr(ord('C') + columns)
+            range_end = None
+
+            try:
+                # get range_end from a single num
+                range_end = get_range_end(int(given_range) - start_time)
+                range_start = range_end
+            except ValueError:
+                match = time_re.match(given_range)
+                # get range_end from a time range ex. 4-5
+                if match:
+                    match_str = match.group()
+                    try:
+                        times = [int(num) for num in match_str.split('-')]
+                    except ValueError:
+                        return None
+
+                    time_diff = times[1] - times[0]
+                    if time_diff == 1:
+                        range_start = get_range_end(times[1] - start_time)
+                        range_end = range_start
+                    elif times[1] > times[0]:
+                        start = times[0] - start_time
+                        range_start = get_range_end(start)
+                        range_end = get_range_end(start + time_diff)
+
+            if range_end:
+                return f'{range_start}{row}:{range_end}{row}'
+
         arg_count = len(args)
-        if arg_count == 3:
+        if arg_count > 3:
             day = self.get_day_int(split[0])
-            if day:
-                row = 3 + day
-                time_re_raw = '\d{1,2}'
-                time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
-
-                range_start = start_time
-
-                def get_range_end(columns: int): return chr(ord('C') + columns)
-                range_end = None
-
-                try:
-                    # get range_end from a single num
-                    range_end = get_range_end(int(split[1]) - start_time)
-                except ValueError:
-                    match = time_re.match(split[1])
-                    # get range_end from a time range ex. 4-5
-                    if match:
-                        match_str = match.group()
-                        try:
-                            times = [int(num) for num in match_str.split('-')]
-                        except ValueError:
-                            ctx.send("Invalid time range \"{split[1]}\"")
-                            return
-
-                        time_diff = times[1] - times[0]
-                        if time_diff == 1:
-                            range_start = get_range_end(times[1] - start_time)
-                            range_end = range_start
-                        elif times[1] > times[0]:
-                            start = times[0] - start_time
-                            range_start = get_range_end(start)
-                            range_end = get_range_end(start + time_diff - 1)
-
-                if range_end:
-                    cell_range = f'{range_start}{row}:{range_end}{row}'
+            if day is not None:
+                cell_range = get_range(split[1], day)
+                if cell_range:
                     handler = self.server_info(ctx.guild.id).sheet_handler
                     try:
-                        handler.update_cells('Weekly Schedule', cell_range, split[2])
+                        log = handler.update_cells('Weekly Schedule', cell_range, split[2::])
+                        await ctx.send(f"Changed {log[0]} to {log[1]}")
                     except ValueError:
-                        ctx.send("Invalid time range.")
+                        await ctx.send("Invalid time range.")
                     except IndexError:
-                        ctx.send("Weird amount of values given for the range given.")
+                        await ctx.send("Weird amount of values given for the range given.")
                 else:
-                    ctx.send(f"Invalid time range \"{split[1]}\"")
+                    await ctx.send(f"Invalid time range \"{split[1]}\"")
             else:
-                ctx.send(f"Invalid day \"{split[0]}\"")
+                await ctx.send(f"Invalid day \"{split[0]}\"")
 
     # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)
