@@ -15,6 +15,7 @@ class ServerInfo:
         self.sheet_handler = SheetHandler(config['doc_key'])
         self.players = self.sheet_handler.get_players()
         self.week_schedule = self.sheet_handler.get_week_schedule()
+        self.valid_activities = self.sheet_handler.get_valid_activities()
         self.scheduler = PingScheduler(guild_id, self)
         self.scheduler.init_scheduler(self)
 
@@ -59,6 +60,7 @@ class ServerInfo:
         handler.authenticate()
         self.players = handler.get_players()
         self.week_schedule = handler.get_week_schedule()
+        self.valid_activities = handler.get_valid_activities()
 
         ping_channel = self.get_ping_channel()
         if ping_channel:

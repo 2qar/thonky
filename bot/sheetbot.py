@@ -3,7 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file as oauth_file, client, tools
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import re
 
 from .players import Player
@@ -32,13 +32,14 @@ class SheetHandler:
         self.gc = gspread.authorize(credentials)
         print("Authenticated.")
 
-    def get_service(self):
-        store = oauth_file.Storage('creds/token.json')
+    @staticmethod
+    def get_service(service_type, version, scope):
+        store = oauth_file.Storage(f'creds/token.json')
         creds = store.get()
         if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('creds/client_secret.json', SheetHandler.script_scope)
+            flow = client.flow_from_clientsecrets('creds/client_secret.json', scope)
             creds = tools.run_flow(flow, store)
-        return build('script', 'v1', http=creds.authorize(Http()))
+        return build(service_type, version, http=creds.authorize(Http()))
 
     def get_sheet(self, sheet_name):
         return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
@@ -82,12 +83,22 @@ class SheetHandler:
         print("Done! :)")
         return player_obj
 
+    def get_valid_activities(self) -> List[str]:
+        """ Get a list of valid activities to write to the weekly schedule """
+
+        service = SheetHandler.get_service('sheets', 'v4', SheetHandler.script_scope[1])
+        response = service.spreadsheets().get(spreadsheetId=self.doc_key, fields='sheets(properties(title,sheetId),conditionalFormats)').execute()
+        week_formats = response['sheets'][1]['conditionalFormats']
+
+        def get_value(rule: Dict): return rule['booleanRule']['condition']['values'][0]['userEnteredValue']
+        return [get_value(rule) for rule in week_formats]
+
     def get_week_schedule(self):
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
         # get all of the cell notes
         request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
-        service = self.get_service()
+        service = SheetHandler.get_service('script', 'v1', SheetHandler.script_scope)
         response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
         try:
             notes = response['response']['result']

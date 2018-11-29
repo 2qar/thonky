@@ -222,6 +222,8 @@ class SheetInfo:
         else:
             start_time = 4
 
+        server_info = self.server_info(ctx.guild.id)
+
         # TODO: Make this work with the Player Schedule worksheet
         # TODO: Store cells in WeekSchedule object, update locally, then push
         def get_range(given_range: str, given_day: int):
@@ -250,15 +252,53 @@ class SheetInfo:
 
                     time_diff = times[1] - times[0]
                     if time_diff == 1:
-                        range_start = get_range_end(times[1] - start_time)
+                        range_start = get_range_end(times[0] - start_time)
                         range_end = range_start
                     elif times[1] > times[0]:
                         start = times[0] - start_time
                         range_start = get_range_end(start)
-                        range_end = get_range_end(start + time_diff)
+                        range_end = get_range_end(start + time_diff - 1)
 
             if range_end:
                 return f'{range_start}{row}:{range_end}{row}'
+
+        async def parse_values(given_values: typing.List[str]):
+            valid_activities = server_info.valid_activities
+            lower_activities = [activity.lower() for activity in valid_activities]
+
+            is_split = False
+            for value in given_values:
+                if ',' in value:
+                    is_split = True
+
+            if len(given_values) > 1 and is_split:
+                activities = ' '.join(given_values)
+                activity_list = activities.split(', ')
+                for i, activity in enumerate(activity_list):
+                    try:
+                        lower_index = lower_activities.index(activity.lower())
+                        activity_list[i] = valid_activities[lower_index]
+                    except ValueError:
+                        await ctx.send(f"Invalid activity \"{activity}\"")
+                        return
+                return activity_list
+            elif len(given_values) == 2:
+                long_valid_activities = [activity for activity in valid_activities if len(activity.split()) == 2]
+                lower_long_activities = [activity.lower() for activity in long_valid_activities]
+
+                activity = ' '.join(given_values)
+                try:
+                    i = lower_long_activities.index(activity.lower())
+                    return [long_valid_activities[i]]
+                except ValueError:
+                    await ctx.send(f"Invalid activity \"{activity}\"")
+            else:
+                try:
+                    i = lower_activities.index(given_values[0].lower())
+                    return [valid_activities[i]]
+                except ValueError:
+                    await ctx.send(f"Invalid activity \"{given_values[0]}\"")
+
 
         arg_count = len(args)
         if arg_count > 3:
@@ -266,14 +306,16 @@ class SheetInfo:
             if day is not None:
                 cell_range = get_range(split[1], day)
                 if cell_range:
-                    handler = self.server_info(ctx.guild.id).sheet_handler
-                    try:
-                        log = handler.update_cells('Weekly Schedule', cell_range, split[2::])
-                        await ctx.send(f"Changed {log[0]} to {log[1]}")
-                    except ValueError:
-                        await ctx.send("Invalid time range.")
-                    except IndexError:
-                        await ctx.send("Weird amount of values given for the range given.")
+                    parsed_values = await parse_values(split[2::])
+                    if parsed_values:
+                        handler = server_info.sheet_handler
+                        try:
+                            log = handler.update_cells('Weekly Schedule', cell_range, parsed_values)
+                            await ctx.send(f"Changed {log[0]} to {log[1]}")
+                        except ValueError:
+                            await ctx.send("Invalid time range.")
+                        except IndexError:
+                            await ctx.send("Weird amount of values given for the range given.")
                 else:
                     await ctx.send(f"Invalid time range \"{split[1]}\"")
             else:
