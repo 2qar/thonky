@@ -1,8 +1,20 @@
+from gspread import Cell
+from typing import List
+
+
 class Player:
-    def __init__(self, name, role, availability):
+    def __init__(self, name: str, role: str, availability: List[Cell]):
         self.name = name
         self.role = role
-        self.availability = availability
+        self._availability = availability
+
+    @property
+    def availability(self) -> List[str]:
+        return [cell.value for cell in self._availability]
+
+    @property
+    def cells(self) -> List[Cell]:
+        return self._availability
 
     def get_availability_for_day(self, day: int):
         start = day * 6

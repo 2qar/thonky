@@ -68,10 +68,10 @@ class SheetHandler:
                     sorted_players[role] = []
                 name = vals[2]
 
-                available_times = vals[3:]
+                available_times = cells[3:]
                 for time in range(0, len(available_times)):
-                        if available_times[time] == '':
-                            available_times[time] = 'Nothing'
+                        if available_times[time].value == '':
+                            available_times[time].value = 'Nothing'
 
                 players.append(Player(name, role, available_times))
 
@@ -119,9 +119,8 @@ class SheetHandler:
 
             row_range = "C{0}:H{0}".format(row.row)
             activity_cells = activity_sheet.range(row_range)
-            activities = [activity.value for activity in activity_cells]
 
-            return DaySchedule(name, date, activities, notes)
+            return DaySchedule(name, date, activity_cells, notes)
 
         days = [get_day(row, note) for row, note in zip(day_rows, notes)]
 
