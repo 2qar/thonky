@@ -225,20 +225,17 @@ class SheetInfo:
         server_info = self.server_info(ctx.guild.id)
 
         # TODO: Make this work with the Player Schedule worksheet
-        # TODO: Store cells in WeekSchedule object, update locally, then push
-        def get_range(given_range: str, given_day: int):
-            row = 3 + given_day
+        def get_range(given_range: str) -> typing.Tuple[int, int] or None:
             time_re_raw = '\d{1,2}'
             time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
 
             range_start = start_time
 
-            def get_range_end(columns: int): return chr(ord('C') + columns)
             range_end = None
 
             try:
                 # get range_end from a single num
-                range_end = get_range_end(int(given_range) - start_time)
+                range_end = int(given_range) - start_time
                 range_start = range_end
             except ValueError:
                 match = time_re.match(given_range)
@@ -252,15 +249,15 @@ class SheetInfo:
 
                     time_diff = times[1] - times[0]
                     if time_diff == 1:
-                        range_start = get_range_end(times[0] - start_time)
+                        range_start = times[0] - start_time
                         range_end = range_start
                     elif times[1] > times[0]:
                         start = times[0] - start_time
-                        range_start = get_range_end(start)
-                        range_end = get_range_end(start + time_diff - 1)
+                        range_start = start
+                        range_end = start + time_diff - 1
 
-            if range_end:
-                return f'{range_start}{row}:{range_end}{row}'
+            if range_end is not None:
+                return range_start, range_end
 
         async def parse_values(given_values: typing.List[str]):
             valid_activities = server_info.valid_activities
@@ -299,21 +296,25 @@ class SheetInfo:
                 except ValueError:
                     await ctx.send(f"Invalid activity \"{given_values[0]}\"")
 
-
         arg_count = len(args)
         if arg_count > 3:
             day = self.get_day_int(split[0])
             if day is not None:
-                cell_range = get_range(split[1], day)
-                if cell_range:
+                cell_range = get_range(split[1])
+                if cell_range is not None:
+                    day_obj = server_info.week_schedule[day]
+                    range_start = cell_range[0]
+                    range_end = cell_range[1]
+                    if range_start == range_end:
+                        cells = [day_obj.cells[range_start]]
+                    else:
+                        cells = day_obj.cells[range_start:range_end]
                     parsed_values = await parse_values(split[2::])
                     if parsed_values:
                         handler = server_info.sheet_handler
                         try:
-                            log = handler.update_cells('Weekly Schedule', cell_range, parsed_values)
+                            log = handler.update_cells('Weekly Schedule', cells, parsed_values)
                             await ctx.send(f"Changed {log[0]} to {log[1]}")
-                        except ValueError:
-                            await ctx.send("Invalid time range.")
                         except IndexError:
                             await ctx.send("Weird amount of values given for the range given.")
                 else:

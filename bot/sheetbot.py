@@ -87,7 +87,10 @@ class SheetHandler:
         """ Get a list of valid activities to write to the weekly schedule """
 
         service = SheetHandler.get_service('sheets', 'v4', SheetHandler.script_scope[1])
-        response = service.spreadsheets().get(spreadsheetId=self.doc_key, fields='sheets(properties(title,sheetId),conditionalFormats)').execute()
+        response = service.spreadsheets().get(
+            spreadsheetId=self.doc_key,
+            fields='sheets(properties(title,sheetId),conditionalFormats)'
+        ).execute()
         week_formats = response['sheets'][1]['conditionalFormats']
 
         def get_value(rule: Dict): return rule['booleanRule']['condition']['values'][0]['userEnteredValue']
@@ -102,14 +105,15 @@ class SheetHandler:
         response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
         try:
             notes = response['response']['result']
-        except KeyError as e:
-            print(f"ERROR grabbing notes on sheet with key [{self.doc_key}].\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
+        except KeyError:
+            print(f"ERROR grabbing notes on sheet with key [{self.doc_key}]."
+                  f"\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
             notes = [''] * 6
 
         activity_sheet = self.get_sheet("Weekly Schedule")
         day_rows = activity_sheet.range("B3:B9")
 
-        def get_day(row, notes):
+        def get_day(row, given_notes):
             split = row.value.split()
 
             name = split[0]
@@ -120,23 +124,17 @@ class SheetHandler:
             row_range = "C{0}:H{0}".format(row.row)
             activity_cells = activity_sheet.range(row_range)
 
-            return DaySchedule(name, date, activity_cells, notes)
+            return DaySchedule(name, date, activity_cells, given_notes)
 
         days = [get_day(row, note) for row, note in zip(day_rows, notes)]
 
         return WeekSchedule(days)
 
-    def update_cells(self, sheet_name: str, cell_range: str, values: List[str]) -> Tuple[List[str], List[str]]:
+    def update_cells(self, sheet_name: str, cells: List[gspread.Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
-
-        cell_re_raw = '[A-Z]\d{1,2}'
-        cell_re = re.compile(f'{cell_re_raw}:{cell_re_raw}')
-        if not cell_re.match(cell_range):
-            raise ValueError("Cell range format incorrect")
 
         sheet = self.get_sheet(sheet_name)
 
-        cells = sheet.range(cell_range)
         if len(values) != len(cells) and len(values) != 1:
             raise IndexError("Length of values given doesn't match the amount of cells.")
 
