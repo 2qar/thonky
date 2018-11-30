@@ -225,7 +225,7 @@ class SheetInfo:
         server_info = self.server_info(ctx.guild.id)
 
         # TODO: Make this work with the Player Schedule worksheet
-        def get_range(given_range: str) -> typing.Tuple[int, int] or None:
+        def get_range(given_range: str, offset: typing.Optional[int]=-1) -> typing.Tuple[int, int] or None:
             time_re_raw = '\d{1,2}'
             time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
 
@@ -257,9 +257,13 @@ class SheetInfo:
                         range_end = start + time_diff - 1
 
             if range_end is not None:
+                if offset != -1:
+                    offset *= 6
+                    range_start += offset
+                    range_end += offset
                 return range_start, range_end
 
-        async def parse_values(given_values: typing.List[str]):
+        async def parse_activities(given_values: typing.List[str]):
             valid_activities = server_info.valid_activities
             lower_activities = [activity.lower() for activity in valid_activities]
 
@@ -296,6 +300,10 @@ class SheetInfo:
                 except ValueError:
                     await ctx.send(f"Invalid activity \"{given_values[0]}\"")
 
+        async def parse_availability(given_values: typing.List[str]):
+            # TODO: this
+            pass
+
         arg_count = len(args)
         if arg_count > 3:
             day = self.get_day_int(split[0])
@@ -309,7 +317,7 @@ class SheetInfo:
                         cells = [day_obj.cells[range_start]]
                     else:
                         cells = day_obj.cells[range_start:range_end]
-                    parsed_values = await parse_values(split[2::])
+                    parsed_values = await parse_activities(split[2::])
                     if parsed_values:
                         handler = server_info.sheet_handler
                         try:
