@@ -1,10 +1,10 @@
 import gspread
+from gspread import Cell
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file as oauth_file, client, tools
 from typing import List, Tuple, Dict
-import re
 
 from .players import Player
 from .players import Players
@@ -130,7 +130,7 @@ class SheetHandler:
 
         return WeekSchedule(days)
 
-    def update_cells(self, sheet_name: str, cells: List[gspread.Cell], values: List[str]) -> Tuple[List[str], List[str]]:
+    def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
 
         sheet = self.get_sheet(sheet_name)
