@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord.ext.commands import Context
 from ...dbhandler import DBHandler
 import re
 
@@ -16,7 +17,7 @@ class Config:
         self.bot = bot
 
     @commands.command(pass_context=True)
-    async def set_sheet(self, ctx: commands.Context, url: str):
+    async def set_sheet(self, ctx: Context, url: str):
         sheet_re_raw = 'https:\/\/docs.google.com\/spreadsheets\/d\/[\d\w-]{44}'
         sheet_re = re.compile(sheet_re_raw)
         if not sheet_re.match(url):
@@ -30,6 +31,24 @@ class Config:
 
             server_info = self.bot.server_info[str(ctx.guild.id)]
             await server_info.update(channel=ctx.channel)
+
+    @commands.command(pass_context=True)
+    async def set_channel(self, ctx: Context, channel: str):
+        channel_re_raw = '<#\d{18}>'
+        channel_re = re.compile(channel_re_raw)
+        if not channel_re.match(channel):
+            await ctx.send("Invalid channel.")
+        else:
+            channel_id = channel[2:len(channel)-1]
+            channel_obj = ctx.guild.get_channel(int(channel_id))
+            if channel_obj:
+                if not channel_obj.permissions_for(ctx.guild.me).send_messages:
+                    await ctx.send("I can't send messages in that channel. :(")
+                else:
+                    write_property(ctx.guild.id, 'announce_channel', channel_id)
+                    await ctx.send("Channel set. :)")
+            else:
+                await ctx.send("I can't see that channel. :(")
 
 
 def setup(bot):
