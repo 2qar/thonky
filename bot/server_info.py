@@ -54,9 +54,15 @@ class ServerInfo:
         else:
             await try_send("Updating...")
 
+        with DBHandler() as handler:
+            doc_key = handler.get_server_config(self.guild_id)['doc_key']
+            if not doc_key:
+                await try_send('No spreadsheet given for this server :(')
+                return
+
         self.scanning = True
 
-        handler = self.sheet_handler
+        handler = SheetHandler(doc_key)
         handler.authenticate()
         self.players = handler.get_players()
         self.week_schedule = handler.get_week_schedule()

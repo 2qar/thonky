@@ -93,7 +93,7 @@ class SheetInfo:
     async def get(self, ctx, *, args: str):
         split = args.split()
 
-        if args.lower() == '!get superior hog':
+        if args.lower() == 'superior hog':
             superior_hog = ['ADS', 'Tydra'][random.randrange(2)]
             await ctx.send(superior_hog)
             return
@@ -111,7 +111,7 @@ class SheetInfo:
             if not Formatter.day_name(day) == 'Sunday':
                 day += 1
             else:
-                ctx.send("It's Sunday silly")
+                await ctx.send("It's Sunday silly")
                 return
 
         def is_hour(hour: str):
@@ -139,8 +139,9 @@ class SheetInfo:
             elif arg == 'week':
                 embed = formatter.get_week_activity_schedule(guild_id, server_info.week_schedule)
             else:
-                if SheetInfo.get_day_int(arg):
-                    embed = formatter.get_day_schedule(guild_id, server_info.players, day)
+                day_int = SheetInfo.get_day_int(arg)
+                if day_int is not None:
+                    embed = formatter.get_day_schedule(guild_id, server_info.players, day_int)
                 else:
                     await ctx.send("Invalid day.")
                     return

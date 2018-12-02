@@ -58,7 +58,11 @@ class DBHandler:
         def format_item(key):
             value = str(config_base[key[0]])
             value = value.replace("'", '"')
-            return f"'{value}'"
+            value = f"'{value}'"
+            if value != "''":
+                return value
+            else:
+                return 'NULL'
 
         formatted_config_base += ', '.join([format_item(key) for key in sorted(config_base.items())])
         formatted_config_base = format_arrays(formatted_config_base)

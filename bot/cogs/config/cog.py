@@ -1,5 +1,6 @@
 from discord.ext import commands
 from ...dbhandler import DBHandler
+import re
 
 base_sheet_url = 'https://docs.google.com/spreadsheets/d/'
 
@@ -15,8 +16,10 @@ class Config:
         self.bot = bot
 
     @commands.command(pass_context=True)
-    async def set_sheet(self, ctx, url):
-        if not url.startswith(base_sheet_url):
+    async def set_sheet(self, ctx: commands.Context, url: str):
+        sheet_re_raw = 'https:\/\/docs.google.com\/spreadsheets\/d\/[\d\w-]{44}'
+        sheet_re = re.compile(sheet_re_raw)
+        if not sheet_re.match(url):
             await ctx.send("Invalid spreadsheet url.")
         else:
             # cut the stuff surrounding the key
@@ -25,8 +28,8 @@ class Config:
 
             write_property(ctx.guild.id, 'doc_key', doc_key)
 
-            server_info = self.bot.server_info[ctx.guild.id]
-            await server_info.update()
+            server_info = self.bot.server_info[str(ctx.guild.id)]
+            await server_info.update(channel=ctx.channel)
 
 
 def setup(bot):
