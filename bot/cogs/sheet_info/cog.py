@@ -226,7 +226,7 @@ class SheetInfo:
         server_info = self.server_info(ctx.guild.id)
 
         # TODO: Make this work with the Player Schedule worksheet
-        def get_range(given_range: str, offset: typing.Optional[int]=-1) -> typing.Tuple[int, int] or None:
+        def get_range(given_range: str, offset: int) -> typing.Tuple[int, int] or None:
             time_re_raw = '\d{1,2}'
             time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
 
@@ -253,9 +253,8 @@ class SheetInfo:
                         range_start = times[0] - start_time
                         range_end = range_start
                     elif times[1] > times[0]:
-                        start = times[0] - start_time
-                        range_start = start
-                        range_end = start + time_diff - 1
+                        range_start = times[0] - start_time
+                        range_end = times[1] - times[0] + 1
 
             if range_end is not None:
                 if offset != -1:
@@ -263,6 +262,10 @@ class SheetInfo:
                     range_start += offset
                     range_end += offset
                 return range_start, range_end
+
+        def get_csv(given_values: typing.List[str]) -> typing.List[str]:
+            joined_values = ' '.join(given_values)
+            return joined_values.split(', ')
 
         async def parse_activities(given_values: typing.List[str]):
             valid_activities = server_info.valid_activities
@@ -274,8 +277,7 @@ class SheetInfo:
                     is_split = True
 
             if len(given_values) > 1 and is_split:
-                activities = ' '.join(given_values)
-                activity_list = activities.split(', ')
+                activity_list = get_csv(given_values)
                 for i, activity in enumerate(activity_list):
                     try:
                         lower_index = lower_activities.index(activity.lower())
@@ -302,34 +304,61 @@ class SheetInfo:
                     await ctx.send(f"Invalid activity \"{given_values[0]}\"")
 
         async def parse_availability(given_values: typing.List[str]):
-            # TODO: this
-            pass
+            valid_availability = ['Yes', 'Maybe', 'No']
+            valid_lower = [response.lower() for response in valid_availability]
+
+            if len(given_values) > 1:
+                response_list = get_csv(given_values)
+                for i, value in enumerate(response_list):
+                    try:
+                        lower_index = valid_lower.index(value.lower())
+                        response_list[i] = valid_availability[lower_index]
+                    except ValueError:
+                        await ctx.send(f"Invalid response \"{value}\"")
+                        return
+                return response_list
+            else:
+                try:
+                    i = valid_lower.index(given_values[0].lower())
+                    return [valid_availability[i]]
+                except ValueError:
+                    await ctx.send(f"Invalid response \"{given_values[0]}\"")
+
+        async def update_cells(sheet_name: str, cell_container, value_parser, value_start_index: int, offset=-1):
+            cell_range = get_range(split[value_start_index + 1], offset)
+            if cell_range is not None:
+                range_start = cell_range[0]
+                range_end = cell_range[1]
+                if range_start == range_end:
+                    cells = [cell_container.cells[range_start]]
+                else:
+                    cells = cell_container.cells[range_start:range_end]
+                parsed_values = await value_parser(split[value_start_index + 2::])
+                if parsed_values:
+                    handler = server_info.sheet_handler
+                    try:
+                        log = handler.update_cells(sheet_name, cells, parsed_values)
+                        await ctx.send(f"Changed {log[0]} to {log[1]}")
+                    except IndexError:
+                        await ctx.send("Weird amount of values given for the range given.")
+            else:
+                await ctx.send(f"Invalid time range \"{split[value_start_index + 1]}\"")
 
         arg_count = len(args)
         if arg_count > 3:
             day = self.get_day_int(split[0])
+            player = self.get_player_by_name(ctx.guild.id, split[0])
             if day is not None:
-                cell_range = get_range(split[1])
-                if cell_range is not None:
-                    day_obj = server_info.week_schedule[day]
-                    range_start = cell_range[0]
-                    range_end = cell_range[1]
-                    if range_start == range_end:
-                        cells = [day_obj.cells[range_start]]
-                    else:
-                        cells = day_obj.cells[range_start:range_end]
-                    parsed_values = await parse_activities(split[2::])
-                    if parsed_values:
-                        handler = server_info.sheet_handler
-                        try:
-                            log = handler.update_cells('Weekly Schedule', cells, parsed_values)
-                            await ctx.send(f"Changed {log[0]} to {log[1]}")
-                        except IndexError:
-                            await ctx.send("Weird amount of values given for the range given.")
+                day_obj = self.server_info(ctx.guild.id).week_schedule[day]
+                await update_cells('Weekly Schedule', day_obj, parse_activities, 0)
+            elif player is not None:
+                day = self.get_day_int(split[1])
+                if day is not None:
+                    await update_cells('Team Availability', player, parse_availability, 1, offset=day)
                 else:
-                    await ctx.send(f"Invalid time range \"{split[1]}\"")
+                    await ctx.send("Invalid day \"{split[1]}\"")
             else:
-                await ctx.send(f"Invalid day \"{split[0]}\"")
+                await ctx.send(f"Invalid day / player \"{split[0]}\"")
 
     # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)
