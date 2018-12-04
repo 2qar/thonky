@@ -61,19 +61,23 @@ class SheetHandler:
         print("Creating player objects...")
         for cell in player_cells:
             if cell.value != '':
-                cells = availability.range('A{0}:AS{0}'.format(cell.row))
+                cells = availability.range('A{0}:C{0}'.format(cell.row))
                 vals = [val.value for val in cells]
                 if vals[1] != '':
                     role = vals[1]
                     sorted_players[role] = []
                 name = vals[2]
 
-                available_times = cells[3:]
-                for time in range(0, len(available_times)):
-                        if available_times[time].value == '':
-                            available_times[time].value = 'Nothing'
+                player_doc = self.get_sheet(name)
+                if player_doc:
+                    available_times = []
+                    for row in range(3, 10):
+                        available_times += player_doc.range('C{0}:H{0}'.format(row))
+                    for i, response in enumerate(available_times):
+                        if response == '':
+                            available_times[i] = 'Nothing'
 
-                players.append(Player(name, role, available_times))
+                    players.append(Player(name, role, available_times))
 
         for player in players:
             sorted_players[player.role].append(player)

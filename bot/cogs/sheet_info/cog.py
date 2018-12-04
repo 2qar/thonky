@@ -1,4 +1,5 @@
 from discord.ext import commands
+from gspread.exceptions import APIError
 import typing
 import calendar
 import datetime
@@ -341,6 +342,12 @@ class SheetInfo:
                         await ctx.send(f"Changed {log[0]} to {log[1]}")
                     except IndexError:
                         await ctx.send("Weird amount of values given for the range given.")
+                    except APIError as e:
+                        error = e.response.json()['error']
+                        if error['code'] == 400:
+                            if error['message'].startswith('You are trying to edit a protected cell or object.'):
+                                await ctx.send(f"The sheet \"{sheet_name}\" is protected. "
+                                               "I need edit permission :(")
             else:
                 await ctx.send(f"Invalid time range \"{split[value_start_index + 1]}\"")
 
@@ -354,7 +361,7 @@ class SheetInfo:
             elif player is not None:
                 day = self.get_day_int(split[1])
                 if day is not None:
-                    await update_cells('Team Availability', player, parse_availability, 1, offset=day)
+                    await update_cells(player.name, player, parse_availability, 1, offset=day)
                 else:
                     await ctx.send("Invalid day \"{split[1]}\"")
             else:
