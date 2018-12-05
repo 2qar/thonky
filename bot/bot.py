@@ -43,10 +43,10 @@ class Bot(DiscordBot):
 
     async def on_ready(self):
         playing = Game("with spreadsheets")
-        await self.change_presence(activity=playing)
         self.add_cogs()
         self.get_server_info()
 
+        await self.change_presence(activity=playing)
         print("Ready! :)")
             
     async def on_guild_join(self, guild):
