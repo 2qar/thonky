@@ -70,12 +70,10 @@ class SheetHandler:
 
                 player_doc = self.get_sheet(name)
                 if player_doc:
-                    available_times = []
-                    for row in range(3, 10):
-                        available_times += player_doc.range('C{0}:H{0}'.format(row))
+                    available_times: List[Cell] = player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
                         if response == '':
-                            available_times[i] = 'Nothing'
+                            available_times[i].value = 'Nothing'
 
                     players.append(Player(name, role, available_times))
 
