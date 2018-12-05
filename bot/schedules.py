@@ -42,9 +42,13 @@ class DaySchedule:
         """ Return the indexes of each Player VOD with a note. """
 
         vods = []
-        for i in range(0, len(self.activities)):
-            if self.activities[i].lower() == 'player vod' and self.notes[i]:
-                vods.append(i)
+        for i, activity in enumerate(self.activities):
+            if activity.lower() == 'player vod':
+                try:
+                    if self.notes[i]:
+                        vods.append(i)
+                except IndexError:
+                    pass
         return vods
 
     def __str__(self):
