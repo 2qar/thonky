@@ -1,6 +1,4 @@
 import aiohttp
-import asyncio
-from bs4 import BeautifulSoup
 import pybuff
 
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
@@ -19,10 +17,10 @@ async def get_player_info(player_json, owner=False):
     battletag = ''
     try:
         battletag = user['inGameName']
-    except:
+    except KeyError:
         try:
             battletag = user['accounts']['battlenet']['battletag']
-        except:
+        except KeyError:
             pass
         
     try:
@@ -55,9 +53,10 @@ async def get_team_info(persistent_team_id):
             for player in players:
                 if player['info']:
                     sr = player['info'].get_sr()
-                    if sr > 0:
-                        average_sr += sr
-                        player_total += 1
+                    if sr:
+                        if sr > 0:
+                            average_sr += sr
+                            player_total += 1
             average_sr /= player_total
             team_info['sr_avg'] = int(average_sr)
         elif request.status == 404:

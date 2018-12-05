@@ -42,15 +42,16 @@ class ODScraper:
         embed.set_thumbnail(url=team_info['logo'])
         
         players_with_info = [player for player in team_info['players'] if player['info']]
-        players =  sorted(players_with_info, key=lambda k: k['info']['sr'], reverse=True)
+        players = sorted(players_with_info, key=lambda k: k['info'].get_sr(), reverse=True)
 
-        def format_player_info(player):
+        def format_player_info(player: dict) -> str:
             if not player['info']:
                 return ":ghost: " + player['name']
             else:
                 role_emote = overbuff_role_emotes[player['info'].get_role()[0]]
                 sr = player['info'].get_sr()
-                if sr == 0: sr = '???'
+                if sr == 0:
+                    sr = '???'
                 return f"{role_emote} {player['name']}: {sr}"
 
         player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
@@ -60,7 +61,7 @@ class ODScraper:
 
             avg = 0
             for player in top_players:
-                avg += player['info']['sr']
+                avg += player['info'].get_sr()
 
             return int(avg / len(top_players))
 
@@ -75,8 +76,8 @@ class ODScraper:
 
         return embed
 
-    @commands.command(pass_context=True)
-    async def od(self, ctx, od_round):
+    @staticmethod
+    async def send_od(ctx, od_round):
         try:
             int(od_round)
         except ValueError:
@@ -91,6 +92,10 @@ class ODScraper:
             await message.edit(content=None, embed=embed)
         else:
             await ctx.send("No OD team ID set.")
+
+    @commands.command(pass_context=True)
+    async def od(self, ctx, od_round):
+        await ODScraper.send_od(ctx, od_round)
 
 
 def setup(bot):

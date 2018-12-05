@@ -164,7 +164,7 @@ class SheetInfo:
                     return
             elif player_name == 'od':
                 # this probably won't work but let's try it anyways :)
-                await ODScraper(self.bot).od(ctx, target)
+                await ODScraper.send_od(ctx, target)
             else:
                 await ctx.send("Invalid player given.")
         elif arg_count == 3:
