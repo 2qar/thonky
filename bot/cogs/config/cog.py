@@ -12,6 +12,17 @@ def write_property(server_id, key, value):
         handler.update_server_config(server_id, key, value)
 
 
+def get_last_link_element(link: str) -> str:
+    """ Get the thing at the end of a link path.
+
+        Passing this link:
+            https://battlefy.com/teams/5bfe1b9418ddd9114f14efb0
+        Would return:
+            5bfe1b9418ddd9114f14efb0
+    """
+    return link[link.rfind('/') + 1::]
+
+
 class Config:
     def __init__(self, bot):
         self.bot = bot
@@ -54,21 +65,27 @@ class Config:
             await ctx.send("Invalid team link.")
         else:
             team_url = match.group(0)
-            team_id = team_url[team_url.rfind('/') + 1::]
+            team_id = get_last_link_element(team_url)
             with DBHandler() as handler:
                 handler.update_server_config(ctx.guild.id, 'team_id', team_id)
             await ctx.send("Team set. :)")
 
     @commands.command(pass_context=True, name='set_tourney')
     async def set_tournament(self, ctx: Context, tournament_url: str):
-        tournament_re = 'https:\/\/battlefy.com/overwatch-open-division-north-america\/[\w\d-]{1,}\/[\d\w]{24}'
+        """ Sets the tournament stage ID for a server.
+
+            The link must follow this format:
+                https://battlefy.com/{organization}/{tournament}/{tournament_id}/stage/{stage_id}
+        """
+        tournament_re = 'https:\/\/battlefy.com/[\w\d-]{1,}\/[\w\d-]{1,}\/[\d\w]{24}\/stage\/[\d\w]{24}'
         match = re.match(tournament_re, tournament_url)
         if not match:
             await ctx.send("Invalid tournament url.")
         else:
             url = match.group(0)
+            stage_id = get_last_link_element(url)
             with DBHandler() as handler:
-                handler.update_server_config(ctx.guild.id, 'tournament_link', url)
+                handler.update_server_config(ctx.guild.id, 'stage_id', stage_id)
             await ctx.send("Tournament set. :)")
 
 
