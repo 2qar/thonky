@@ -18,9 +18,8 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
-        sheet_re_raw = 'https:\/\/docs.google.com\/spreadsheets\/d\/[\d\w-]{44}'
-        sheet_re = re.compile(sheet_re_raw)
-        if not sheet_re.match(url):
+        sheet_re = 'https:\/\/docs.google.com\/spreadsheets\/d\/[\d\w-]{44}'
+        if not re.match(sheet_re, url):
             await ctx.send("Invalid spreadsheet url.")
         else:
             # cut the stuff surrounding the key
@@ -34,9 +33,7 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_channel(self, ctx: Context, channel: str):
-        channel_re_raw = '<#\d{18}>'
-        channel_re = re.compile(channel_re_raw)
-        if not channel_re.match(channel):
+        if not re.match('<#\d{18}>', channel):
             await ctx.send("Invalid channel.")
         else:
             channel_id = channel[2:len(channel)-1]
@@ -49,6 +46,30 @@ class Config:
                     await ctx.send("Channel set. :)")
             else:
                 await ctx.send("I can't see that channel. :(")
+
+    @commands.command(pass_context=True)
+    async def set_team(self, ctx: Context, team_url: str):
+        match = re.match('https:\/\/battlefy.com\/teams\/[\d\w]{24}', team_url)
+        if not match:
+            await ctx.send("Invalid team link.")
+        else:
+            team_url = match.group(0)
+            team_id = team_url[team_url.rfind('/') + 1::]
+            with DBHandler() as handler:
+                handler.update_server_config(ctx.guild.id, 'team_id', team_id)
+            await ctx.send("Team set. :)")
+
+    @commands.command(pass_context=True, name='set_tourney')
+    async def set_tournament(self, ctx: Context, tournament_url: str):
+        tournament_re = 'https:\/\/battlefy.com/overwatch-open-division-north-america\/[\w\d-]{1,}\/[\d\w]{24}'
+        match = re.match(tournament_re, tournament_url)
+        if not match:
+            await ctx.send("Invalid tournament url.")
+        else:
+            url = match.group(0)
+            with DBHandler() as handler:
+                handler.update_server_config(ctx.guild.id, 'tournament_link', url)
+            await ctx.send("Tournament set. :)")
 
 
 def setup(bot):
