@@ -30,7 +30,7 @@ class ServerInfo:
                 return None
 
     def save_players(self):
-        week = self.week_schedule[0].replace('/', '-')
+        week = self.week_schedule[0].date.replace('/', '-')
 
         with DBHandler() as handler:
             for player in self.players.unsorted_list:
