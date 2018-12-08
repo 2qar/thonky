@@ -1,6 +1,5 @@
 from discord.ext import commands
 from discord import Embed, Colour
-import asyncio
 
 from .scraper import get_other_team_info
 from ...dbhandler import DBHandler
@@ -22,11 +21,11 @@ class ODScraper:
         self.bot = bot
 
     @staticmethod
-    async def get_info_from_id(od_round, server_id):
+    async def get_info_from_id(stage_id: str, od_round: str, server_id: int):
         with DBHandler() as handler:
             config = handler.get_server_config(server_id)
         if config:
-            return await get_other_team_info(od_round, config['team_id'])
+            return await get_other_team_info(stage_id, od_round, config['team_id'])
 
     @staticmethod
     def format_other_team_info(od_round, team_info):
@@ -84,14 +83,20 @@ class ODScraper:
             await ctx.send("Invalid round number.")
             return
 
-        message = await ctx.send("Getting match info...")
+        with DBHandler() as handler:
+            stage_id = handler.get_server_config(ctx.guild.id)['stage_id']
 
-        enemy_info = await ODScraper.get_info_from_id(od_round, ctx.guild.id)
-        if enemy_info:
-            embed = ODScraper.format_other_team_info(od_round, enemy_info)
-            await message.edit(content=None, embed=embed)
+        if stage_id:
+            message = await ctx.send("Getting match info...")
+
+            enemy_info = await ODScraper.get_info_from_id(stage_id, od_round, ctx.guild.id)
+            if enemy_info:
+                embed = ODScraper.format_other_team_info(od_round, enemy_info)
+                await message.edit(content=None, embed=embed)
+            else:
+                await ctx.send("No OD team ID set.")
         else:
-            await ctx.send("No OD team ID set.")
+            await ctx.send("Tournament not set. :(")
 
     @commands.command(pass_context=True)
     async def od(self, ctx, od_round):

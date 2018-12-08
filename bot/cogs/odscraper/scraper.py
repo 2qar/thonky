@@ -77,15 +77,17 @@ def get_team_id(team):
         return None
 
 
-async def get_match(od_round, team_id):
+async def get_match(stage_id: str, od_round: str, team_id: str):
     """
     Looks through all of the matches in od_round and returns the one with the given persistentTeamID
+
+    :param str stage_id: stage ID to get matches for a round
     :param str od_round: The round to get the match from, can be a num 1-10
     :param str team_id: The ID of the team on battlefy that we're grabbing a match for
     :return: A match dict or None if the match couldn't be found
     """
 
-    matches = 'https://dtmwra1jsgyb0.cloudfront.net/stages/5b74a1b106dda6039a96e712/rounds/{}/matches'.format(od_round)
+    matches = f'https://dtmwra1jsgyb0.cloudfront.net/stages/{stage_id}/rounds/{od_round}/matches'
 
     async with aiohttp.request('GET', matches) as request:
         if request.status == 404:
@@ -99,16 +101,18 @@ async def get_match(od_round, team_id):
                     return match
 
 
-async def get_other_team_info(od_round, team_id):
+async def get_other_team_info(stage_id: str, od_round: str, team_id: str):
     """
     Get information on the team we're matched up against in the given round (od_round)
 
+    :param str stage_id: stage id from the tournament link
     :param str od_round: The round to get the match from, can be a num 1-10
     :param str team_id: The ID of the team on battlefy that we're grabbing a match for
     :return: a dict with information about the enemy team
     """
+
     # get the match link
-    match = await get_match(od_round, team_id)
+    match = await get_match(stage_id, od_round, team_id)
     match_link = match_link_base.format(match['stageID'], match['_id'])
     
     # get the info about the team
