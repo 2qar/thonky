@@ -1,5 +1,6 @@
 import aiohttp
 import pybuff
+import typing
 
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
 match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season-3' \
@@ -77,7 +78,7 @@ def get_team_id(team):
         return None
 
 
-async def get_match(stage_id: str, od_round: str, team_id: str):
+async def get_match(stage_id: str, od_round: str, team_id: str) -> typing.Dict or None:
     """
     Looks through all of the matches in od_round and returns the one with the given persistentTeamID
 
@@ -94,6 +95,8 @@ async def get_match(stage_id: str, od_round: str, team_id: str):
             raise LinkNotFound(f"Unable to get match in round {od_round}.")
 
         matches_json = await request.json()
+        if not matches_json:
+            return
 
         for match in matches_json:
             for key in ['top', 'bottom']:
@@ -101,7 +104,7 @@ async def get_match(stage_id: str, od_round: str, team_id: str):
                     return match
 
 
-async def get_other_team_info(stage_id: str, od_round: str, team_id: str):
+async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> typing.Dict or None:
     """
     Get information on the team we're matched up against in the given round (od_round)
 
@@ -113,6 +116,8 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str):
 
     # get the match link
     match = await get_match(stage_id, od_round, team_id)
+    if not match:
+        return
     match_link = match_link_base.format(match['stageID'], match['_id'])
     
     # get the info about the team

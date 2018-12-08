@@ -21,13 +21,6 @@ class ODScraper:
         self.bot = bot
 
     @staticmethod
-    async def get_info_from_id(stage_id: str, od_round: str, server_id: int):
-        with DBHandler() as handler:
-            config = handler.get_server_config(server_id)
-        if config:
-            return await get_other_team_info(stage_id, od_round, config['team_id'])
-
-    @staticmethod
     def format_other_team_info(od_round, team_info):
         title = f"Match against {team_info['name']} in Round {od_round}"
         embed = Embed()
@@ -84,19 +77,25 @@ class ODScraper:
             return
 
         with DBHandler() as handler:
-            stage_id = handler.get_server_config(ctx.guild.id)['stage_id']
+            config = handler.get_server_config(ctx.guild.id)
+            stage_id = config['stage_id']
+            team_id = config['team_id']
 
-        if stage_id:
+        if not stage_id and not team_id:
+            await ctx.send("No tournament or team set. :(")
+        elif not stage_id:
+            await ctx.send("No tournament set. :(")
+        elif not team_id:
+            await ctx.send("No team set. :(")
+        else:
             message = await ctx.send("Getting match info...")
 
-            enemy_info = await ODScraper.get_info_from_id(stage_id, od_round, ctx.guild.id)
+            enemy_info = await get_other_team_info(stage_id, od_round, team_id)
             if enemy_info:
                 embed = ODScraper.format_other_team_info(od_round, enemy_info)
                 await message.edit(content=None, embed=embed)
             else:
-                await ctx.send("No OD team ID set.")
-        else:
-            await ctx.send("Tournament not set. :(")
+                await message.edit(content=f"No data for round {od_round}. :(")
 
     @commands.command(pass_context=True)
     async def od(self, ctx, od_round):
