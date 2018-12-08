@@ -6,3 +6,4 @@ gspread==3.0.1
 beautifulsoup4==4.6.3
 google_api_python_client==1.7.4
 discord.py==1.0.0
+pybuff==0.0.2

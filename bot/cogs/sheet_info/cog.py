@@ -163,7 +163,6 @@ class SheetInfo:
                     await self.avg(ctx, player_name)
                     return
             elif player_name == 'od':
-                # this probably won't work but let's try it anyways :)
                 await ODScraper.send_od(ctx, target)
             else:
                 await ctx.send("Invalid player given.")
@@ -212,8 +211,6 @@ class SheetInfo:
                     except:
                         await ctx.send("Invalid time.")
 
-    # TODO: Make a note that says you have to put underscores in stuff with spaces OR make a command with proper arg
-    #       parsing
     @commands.command(pass_context=True, hidden=True)
     async def set(self, ctx, *, args):
         split = args.split()
@@ -226,7 +223,6 @@ class SheetInfo:
 
         server_info = self.server_info(ctx.guild.id)
 
-        # TODO: Make this work with the Player Schedule worksheet
         def get_range(given_range: str, offset: int) -> typing.Tuple[int, int] or None:
             time_re_raw = '\d{1,2}'
             time_re = re.compile(f'{time_re_raw}-{time_re_raw}')
@@ -367,7 +363,6 @@ class SheetInfo:
             else:
                 await ctx.send(f"Invalid day / player \"{split[0]}\"")
 
-    # TODO: Make a config cog and move this command there
     @commands.command(pass_context=True)
     async def update(self, ctx):
         guild_id = ctx.guild.id

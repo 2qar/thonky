@@ -2,17 +2,18 @@ import aiohttp
 import pybuff
 
 team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season-3-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{}'
+match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season-3' \
+                  '-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{} '
+
 
 class LinkNotFound(Exception):
         """Raised when an important link gives a status code other than 200"""
 
+
 async def get_player_info(player_json, owner=False):
-    user = None
     user = player_json['user'] if not owner else player_json
 
-    player_info = {}
-    player_info['name'] = user['username']
+    player_info = {'name': user['username']}
 
     battletag = ''
     try:
@@ -39,10 +40,11 @@ async def get_team_info(persistent_team_id):
             data = await request.json()
             data = data[0]
 
-            team_info = {}
-            team_info['name'] = data['name']
-            #team_info['link'] = 'https://battlefy.com/teams/' + persistent_team_id
-            team_info['logo'] = data['logoUrl']
+            team_info = {
+                'name': data['name'],
+                'logo': data['logoUrl']
+            }
+            # team_info['link'] = 'https://battlefy.com/teams/' + persistent_team_id
 
             players = [await get_player_info(player) for player in data['persistentPlayers']]
             players.insert(0, await get_player_info(data['owner'], owner=True))
@@ -66,25 +68,28 @@ async def get_team_info(persistent_team_id):
 
     return team_info
 
+
 def get_team_id(team):
     # try here because apparently there can be matches where one of the teams just doesnt exist
     try:
         return team['team']['persistentTeamID']
-    except:
+    except KeyError:
         return None
 
+
 async def get_match(od_round, team_id):
-    '''
+    """
     Looks through all of the matches in od_round and returns the one with the given persistentTeamID
     :param str od_round: The round to get the match from, can be a num 1-10
     :param str team_id: The ID of the team on battlefy that we're grabbing a match for
     :return: A match dict or None if the match couldn't be found
-    '''
+    """
 
     matches = 'https://dtmwra1jsgyb0.cloudfront.net/stages/5b74a1b106dda6039a96e712/rounds/{}/matches'.format(od_round)
 
     async with aiohttp.request('GET', matches) as request:
-        if request.status == 404: raise LinkNotFound(f"Unable to get match in round {od_round}.")
+        if request.status == 404:
+            raise LinkNotFound(f"Unable to get match in round {od_round}.")
 
         matches_json = await request.json()
 
@@ -93,14 +98,15 @@ async def get_match(od_round, team_id):
                 if get_team_id(match[key]) == team_id:
                     return match
 
+
 async def get_other_team_info(od_round, team_id):
-    '''
+    """
     Get information on the team we're matched up against in the given round (od_round)
 
     :param str od_round: The round to get the match from, can be a num 1-10
     :param str team_id: The ID of the team on battlefy that we're grabbing a match for
     :return: a dict with information about the enemy team
-    '''
+    """
     # get the match link
     match = await get_match(od_round, team_id)
     match_link = match_link_base.format(match['stageID'], match['_id'])
@@ -108,9 +114,9 @@ async def get_other_team_info(od_round, team_id):
     # get the info about the team
     team_info = None
     for key in ['top', 'bottom']:
-            current_team_id = get_team_id(match[key])
-            if current_team_id != team_id:
-                team_info = await get_team_info(current_team_id)
+        current_team_id = get_team_id(match[key])
+        if current_team_id != team_id:
+            team_info = await get_team_info(current_team_id)
 
     team_info['match_link'] = match_link
     return team_info
