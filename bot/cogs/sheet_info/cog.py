@@ -245,13 +245,9 @@ class SheetInfo:
                     except ValueError:
                         return None
 
-                    time_diff = times[1] - times[0]
-                    if time_diff == 1:
+                    if times[1] > times[0]:
                         range_start = times[0] - start_time
-                        range_end = range_start
-                    elif times[1] > times[0]:
-                        range_start = times[0] - start_time
-                        range_end = times[1] - times[0] + 1
+                        range_end = range_start + (times[1] - times[0])
 
             if range_end is not None:
                 if offset != -1:
