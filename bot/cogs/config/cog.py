@@ -59,6 +59,14 @@ class Config:
                 await ctx.send("I can't see that channel. :(")
 
     @commands.command(pass_context=True)
+    async def set_role(self, ctx: Context, role: str):
+        if not re.match('<@&\d{18}>', role):
+            await ctx.send("Invalid role.")
+        else:
+            write_property(ctx.guild.id, 'role_mention', role)
+            await ctx.send("Role set. :)")
+
+    @commands.command(pass_context=True)
     async def set_team(self, ctx: Context, team_url: str):
         match = re.match('https:\/\/battlefy.com\/teams\/[\d\w]{24}', team_url)
         if not match:
