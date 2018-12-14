@@ -175,11 +175,13 @@ class Formatter:
 
                 return f':regional_indicator_{activity[0].lower()}:'
 
-        for day in week_schedule.days:
+        today = datetime.datetime.today().weekday()
+        for i, day in enumerate(week_schedule.days):
             # format all of the activities into one nice and pretty string
             formatted_activities = ', '.join([get_formatted_activity_name(activity) for activity in day.activities])
 
-            embed.add_field(name=str(day), value=formatted_activities, inline=False)
+            day_name = str(day) if today != i else f'**{day}**'
+            embed.add_field(name=day_name, value=formatted_activities, inline=False)
 
         return embed
 
