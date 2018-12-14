@@ -172,24 +172,26 @@ class SheetInfo:
             given_day = split[2].title()
 
             player = self.get_player_by_name(guild_id, target)
-            # TODO: Clean up the blanket try-excepts here cus it looks bad
             if decider == 'at':
-                if player:
-                    try:
-                        await send_embed(formatter.get_player_at_time(player, day, given_day))
-                    except:
-                        await ctx.send("Invalid time.")
-                else:
-                    try:
-                        target_day = day if target in ['today', 'tomorrow'] else target
-                        await send_embed(formatter.get_hour_schedule(guild_id, server_info, target_day, given_day))
-                    except:
-                        await ctx.send("Invalid time or day.")
-            elif decider == 'on':
                 try:
-                    await send_embed(formatter.get_player_on_day(guild_id, player, given_day))
-                except:
+                    given_time = int(given_day)
+                except ValueError:
+                    await ctx.send("Invalid time.")
+                    return
+                if player:
+                    await ctx.send(formatter.get_player_at_time(player, day, given_time))
+                else:
+                    target_day = day if target in ['today', 'tomorrow'] else self.get_day_int(target)
+                    if target_day is None:
+                        await ctx.send("Invalid day.")
+                    else:
+                        await send_embed(formatter.get_hour_schedule(guild_id, server_info, target_day, given_day))
+            elif decider == 'on':
+                day = self.get_day_int(given_day)
+                if day is None:
                     await ctx.send("Invalid day.")
+                else:
+                    await send_embed(formatter.get_player_on_day(guild_id, player, day))
             else:
                 await ctx.send("Invalid identifier.")
         elif arg_count == 5:
@@ -201,15 +203,17 @@ class SheetInfo:
                 time = split[2]
                 given_day = split[4].title()
 
-                day_int = SheetInfo.get_day_int(given_day)
-                if not day_int:
+                day_int = self.get_day_int(given_day)
+                if day_int is not None:
                     await ctx.send("Invalid day.")
                 else:
                     try:
-                        msg = formatter.get_player_at_time(player, day_int, time)
-                        await ctx.send(msg)
-                    except:
+                        given_time = int(time)
+                    except ValueError:
                         await ctx.send("Invalid time.")
+                        return
+                    msg = formatter.get_player_at_time(player, day_int, given_time)
+                    await ctx.send(msg)
 
     @commands.command(pass_context=True, hidden=True)
     async def set(self, ctx, *, args):
