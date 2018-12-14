@@ -138,7 +138,7 @@ class SheetInfo:
             elif arg in ['today', 'tomorrow']:
                 embed = formatter.get_day_schedule(guild_id, server_info.players, day)
             elif arg == 'week':
-                embed = formatter.get_week_activity_schedule(guild_id, server_info.week_schedule)
+                embed = formatter.get_week_activity_schedule(self.bot, guild_id, server_info.week_schedule)
             else:
                 day_int = SheetInfo.get_day_int(arg)
                 if day_int is not None:

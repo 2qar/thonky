@@ -10,11 +10,6 @@ from .timezonehelper import get_start_time
 letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:',
                  ':keycap_ten:', ':one::one:', ':one::two:']
 
-activity_emotes = {
-        "Free": ":free:",
-        "TBD": ":grey_question:"
-}
-
 role_emotes = {
         "Tanks": ":shield:",
         "DPS": ":crossed_swords:",
@@ -164,17 +159,20 @@ class Formatter:
 
         return embed
 
-    def get_week_activity_schedule(self, server_id, week_schedule):
+    def get_week_activity_schedule(self, bot, server_id, week_schedule):
         week = week_schedule[0].date
         embed = self.get_template_embed(server_id, f"Week of {week}")
         self.add_time_field(embed, "Times")
 
         def get_formatted_activity_name(activity):
-            if activity == '':
+            if activity == '' or activity == 'TBD':
                 return ":grey_question:"
-            try:
-                return activity_emotes[activity]
-            except KeyError:
+            else:
+                activity_emoji_name = activity.lower().replace(" ", "_")
+                for emote in bot.get_guild(437847669839495168).emojis:
+                    if emote.name == activity_emoji_name:
+                        return str(emote)
+
                 return f':regional_indicator_{activity[0].lower()}:'
 
         for day in week_schedule.days:
