@@ -112,7 +112,7 @@ class Formatter:
         if not responses:
             return
 
-        format_response = (lambda response: f"{status_emotes[response]} {response} {responses[response]}")
+        def format_response(response: str): return f"{status_emotes[response]} {response} {responses[response]}"
         embed_str = '\n'.join([format_response(response) for response in responses])
 
         embed.add_field(name="Responses", value=embed_str, inline=False)
@@ -132,16 +132,12 @@ class Formatter:
             players_string = ""
             available_count = 0
             for player in players.sorted_list[role]:
-                try:
-                    available = player.get_availability_at_time(day, hour, self.start_time)
-                    if available == "Yes":
-                        available_count += 1
-                    emote = status_emotes[available]
-                    player_str = player.name + "\t" + emote
-                    players_string += player_str + "\n"
-                except:
-                    players_string += player.name + "\t:ghost:\n"
-                    print(f"Unable to add player {player.name} to {role} string")
+                available = player.get_availability_at_time(day, hour, self.start_time)
+                if available == "Yes":
+                    available_count += 1
+                emote = status_emotes[available]
+                player_str = player.name + "\t" + emote
+                players_string += player_str + "\n"
 
             role_status = ":warning:" if available_count < 2 else ":ballot_box_with_check:"
             role_name = f"{role_emotes[role]} {role} {role_status}"
@@ -157,15 +153,12 @@ class Formatter:
 
         # add all of the players to the embed
         for player in players.unsorted_list:
-            try:
-                availability = self.get_day_availability(player, day)
-                emotes = [availability[key] for key in availability]
-                formatted_status = ', '.join([emote for emote in emotes])
-                player_name = f"{role_emotes[player.role]} {player.name}"
+            availability = self.get_day_availability(player, day)
+            emotes = [availability[key] for key in availability]
+            formatted_status = ', '.join([emote for emote in emotes])
+            player_name = f"{role_emotes[player.role]} {player.name}"
 
-                embed.add_field(name=player_name, value=formatted_status, inline=False)
-            except Exception as reason:
-                print(f"Unable to add player {player.name} to embed: {reason}")
+            embed.add_field(name=player_name, value=formatted_status, inline=False)
 
         embed = Formatter.add_role_availability(embed, players, day)
 
@@ -181,7 +174,7 @@ class Formatter:
                 return ":grey_question:"
             try:
                 return activity_emotes[activity]
-            except:
+            except KeyError:
                 return f':regional_indicator_{activity[0].lower()}:'
 
         for day in week_schedule.days:
@@ -219,7 +212,3 @@ class Formatter:
             time_string += letter_emotes[time + self.start_time] + ", "
         time_string += letter_emotes[5 + self.start_time]
         embed.add_field(name=title, value=time_string, inline=False)
-
-    def get_week_schedule(self, players):
-        days = list(calendar.day_name)
-        return [self.get_day_schedule(players, day) for day in days]
