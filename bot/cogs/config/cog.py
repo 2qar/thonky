@@ -29,7 +29,7 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
-        sheet_re = 'https:\/\/docs.google.com\/spreadsheets\/d\/[\d\w-]{44}'
+        sheet_re = 'https://docs.google.com/spreadsheets/d/[\d\w-]{44}'
         if not re.match(sheet_re, url):
             await ctx.send("Invalid spreadsheet url.")
         else:
@@ -68,7 +68,7 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_team(self, ctx: Context, team_url: str):
-        match = re.match('https:\/\/battlefy.com\/teams\/[\d\w]{24}', team_url)
+        match = re.match('https://battlefy.com/teams/[\d\w]{24}', team_url)
         if not match:
             await ctx.send("Invalid team link.")
         else:
@@ -85,7 +85,7 @@ class Config:
             The link must follow this format:
                 https://battlefy.com/{organization}/{tournament}/{tournament_id}/stage/{stage_id}
         """
-        tournament_re = 'https:\/\/battlefy.com/[\w\d-]{1,}\/[\w\d-]{1,}\/[\d\w]{24}\/stage\/[\d\w]{24}'
+        tournament_re = 'https://battlefy.com/[\w\d-]{1,}/[\w\d-]{1,}/[\d\w]{24}/stage/[\d\w]{24}'
         match = re.match(tournament_re, tournament_url)
         if not match:
             await ctx.send("Invalid tournament url.")
