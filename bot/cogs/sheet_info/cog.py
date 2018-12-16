@@ -132,7 +132,8 @@ class SheetInfo:
 
             embed = None
             if player:
-                embed = formatter.get_player_on_day(guild_id, player, day)
+                # embed = formatter.get_player_on_day(guild_id, player, day)
+                embed = formatter.get_player_this_week(guild_id, player, server_info.week_schedule)
             elif is_hour(arg):
                 embed = formatter.get_hour_schedule(guild_id, server_info, day, arg)
             elif arg in ['today', 'tomorrow']:
@@ -161,7 +162,6 @@ class SheetInfo:
                     await send_embed(formatter.get_player_on_day(guild_id, player, day))
                 elif target in ['avg', 'average']:
                     await self.avg(ctx, player_name)
-                    return
             elif player_name == 'od':
                 await ODScraper.send_od(ctx, target)
             else:

@@ -88,16 +88,34 @@ class Formatter:
         message += f" on {Formatter.day_name(day)}." if day_not_today else "."
         return message
 
+    @staticmethod
+    def get_emote_availability(player, day: int) -> str:
+        """ Format a player's availability for a day pretty comma-separated emotes """
+
+        availability = player.get_availability_for_day(day)
+        availability_emotes = [status_emotes[response] for response in availability]
+        return ', '.join(availability_emotes)
+
+    # TODO: Replace this with get_player_during_week or something like that
     def get_player_on_day(self, server_id: int, player, day: int):
         day_name = Formatter.day_name(day)
         embed = self.get_template_embed(server_id, f"{player.name} on {day_name}")
         self.add_time_field(embed, "Times")
         embed.set_thumbnail(url=thonk_link)
 
-        availability = player.get_availability_for_day(day)
-        emotes = [status_emotes[response] for response in availability]
-        available_str = ', '.join(emotes)
+        available_str = self.get_emote_availability(player, day)
         embed.add_field(name="Availability", value=available_str, inline=False)
+
+        return embed
+
+    def get_player_this_week(self, server_id: int, player, week_schedule):
+        embed = self.get_template_embed(server_id, f"{player.name}'s Week")
+        self.add_time_field(embed, "Times")
+
+        today = datetime.datetime.today().weekday()
+        for i, day in enumerate(week_schedule):
+            day_name = str(day) if i != today else f"**{day}**"
+            embed.add_field(name=day_name, value=self.get_emote_availability(player, i), inline=False)
 
         return embed
 
