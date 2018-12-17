@@ -43,6 +43,11 @@ class SheetInfo:
 
     @commands.command(pass_context=True)
     async def avg(self, ctx, player_name: str):
+        """ Check the average responses for a player.
+
+            Equivalent to !get <player name> avg
+        """
+
         async def error():
             await ctx.send(f"No data for {player_name} :(")
 
@@ -64,6 +69,11 @@ class SheetInfo:
                     time: typing.Optional[int] = 0,
                     *,
                     tz: typing.Optional[str]='PST'):
+        """ Check somebody's availability at a certain time.
+
+            Equivalent to all of the !get player at time commands.
+        """
+
         if not day:
             day = Formatter.day_name(datetime.datetime.today().weekday())
         elif day.lower() == 'tomorrow':
@@ -92,6 +102,31 @@ class SheetInfo:
 
     @commands.command(pass_context=True)
     async def get(self, ctx, *, args: str):
+        """ Get information from the configured spreadsheet.
+
+            Schedule commands:
+            !get <day name OR today OR tomorrow>
+                Show who's available at what time on a certain day.
+            !get <day name OR today OR tomorrow> at <time>
+                Show who's available on a certain day at a certain time.
+            !get <time>
+                Show who's available today at a certain time.
+            !get week
+                Show the schedule for this week.
+
+            Player commands:
+            !get <player name>
+                Show this player's availability this week.
+            !get <player name> avg
+                Show the average responses for somebody.
+            !get <player name> on <day name>
+                Show this player's availability on a certain day.
+            !get <player name> at <time>
+                Show this player's availability today at a certain time.
+            !get <player name> on <day name> at <time>
+                Show this player's availability on a certain day at a certain time.
+        """
+
         split = args.split()
 
         if args.lower() == 'superior hog':
@@ -132,7 +167,6 @@ class SheetInfo:
 
             embed = None
             if player:
-                # embed = formatter.get_player_on_day(guild_id, player, day)
                 embed = formatter.get_player_this_week(guild_id, player, server_info.week_schedule)
             elif is_hour(arg):
                 embed = formatter.get_hour_schedule(guild_id, server_info, day, arg)
@@ -217,6 +251,20 @@ class SheetInfo:
 
     @commands.command(pass_context=True, hidden=True)
     async def set(self, ctx, *, args):
+        """ Update information on the configured spreadsheet.
+
+            !set < player name > < day name > < time range > < availability >
+                Update player availability.
+            !set < day name > < time range > < activity / activities >
+                Update schedule.
+
+            To give multiple responses / activities, use commas:
+                !set tydra monday 4-6 no, yes
+
+            Giving one response for multiple cells will set the value of each cell to that response:
+                !set monday 4-10 free
+        """
+
         split = args.split()
 
         start_time = get_start_time(split[-1])
@@ -348,7 +396,7 @@ class SheetInfo:
                 await ctx.send(f"Invalid time range \"{split[value_start_index + 1]}\"")
 
         arg_count = len(args)
-        if arg_count > 3:
+        if arg_count >= 3:
             day = self.get_day_int(split[0])
             player = self.get_player_by_name(ctx.guild.id, split[0])
             if day is not None:
@@ -359,12 +407,15 @@ class SheetInfo:
                 if day is not None:
                     await update_cells(player.name, player, parse_availability, 1, offset=day)
                 else:
-                    await ctx.send("Invalid day \"{split[1]}\"")
+                    await ctx.send(f"Invalid day \"{split[1]}\"")
             else:
                 await ctx.send(f"Invalid day / player \"{split[0]}\"")
 
+    # TODO: Check the sheet to see if it's actually changed before just pulling changes
     @commands.command(pass_context=True)
     async def update(self, ctx):
+        """ Pull any new changes from the sheet. """
+
         guild_id = ctx.guild.id
         try:
             server_info = self.server_info(guild_id)
