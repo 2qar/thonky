@@ -29,6 +29,12 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
+        """ Sets the sheet to grab schedule info from.
+
+            Make a sheet using a copy of this template:
+                https://docs.google.com/spreadsheets/d/1_78Wbe8EeaBC4Dc1X3bXyHyfC5BKCFm2VuxQlljeYMQ/edit?usp=sharing
+        """
+
         sheet_re = 'https://docs.google.com/spreadsheets/d/[\d\w-]{44}'
         if not re.match(sheet_re, url):
             await ctx.send("Invalid spreadsheet url.")
@@ -44,6 +50,8 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_channel(self, ctx: Context, channel: str):
+        """ Sets the channel to send reminder messages in. """
+
         if not re.match('<#\d{18}>', channel):
             await ctx.send("Invalid channel.")
         else:
@@ -59,15 +67,19 @@ class Config:
                 await ctx.send("I can't see that channel. :(")
 
     @commands.command(pass_context=True)
-    async def set_role(self, ctx: Context, role: str):
-        if not re.match('<@&\d{18}>', role):
+    async def set_role(self, ctx: Context, role_mention: str):
+        """ Sets the role to ping in reminder messages. """
+
+        if not re.match('<@&\d{18}>', role_mention):
             await ctx.send("Invalid role.")
         else:
-            write_property(ctx.guild.id, 'role_mention', role)
+            write_property(ctx.guild.id, 'role_mention', role_mention)
             await ctx.send("Role set. :)")
 
     @commands.command(pass_context=True)
     async def set_team(self, ctx: Context, team_url: str):
+        """ Sets the team on Battlefy to look for in matches. """
+
         match = re.match('https://battlefy.com/teams/[\d\w]{24}', team_url)
         if not match:
             await ctx.send("Invalid team link.")
@@ -80,11 +92,12 @@ class Config:
 
     @commands.command(pass_context=True, name='set_tourney')
     async def set_tournament(self, ctx: Context, tournament_url: str):
-        """ Sets the tournament stage ID for a server.
+        """ Sets the tournament stage ID for grabbing match info..
 
             The link must follow this format:
                 https://battlefy.com/{organization}/{tournament}/{tournament_id}/stage/{stage_id}
         """
+
         tournament_re = 'https://battlefy.com/[\w\d-]{1,}/[\w\d-]{1,}/[\d\w]{24}/stage/[\d\w]{24}'
         match = re.match(tournament_re, tournament_url)
         if not match:
