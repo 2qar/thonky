@@ -19,7 +19,7 @@ def dictify(data, fields):
 class DBHandler:
     def __init__(self):
         with open('config.json') as config_file:
-                cfg = json.load(config_file)
+            cfg = json.load(config_file)
         self.conn = psycopg2.connect(dbname='thonkydb', user=cfg['db_user'], password=cfg['db_pw'], host=cfg['db_host'])
         self.cursor = self.conn.cursor()
 
@@ -44,8 +44,7 @@ class DBHandler:
         self.cursor.execute("""
                 SELECT * FROM server_config 
                 WHERE server_id = %s
-                """,
-                (server_id,))
+                """, (server_id,))
 
         return self.format_sql_data('server_config')
 
@@ -90,8 +89,7 @@ class DBHandler:
                 SELECT * FROM player_data
                 WHERE server_id = %s AND
                 LOWER(name) = LOWER(%s) {date_str}
-                """,
-                (server_id, name))
+                """, (server_id, name))
 
         return self.format_sql_data('player_data')
 
