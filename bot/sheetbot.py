@@ -20,9 +20,9 @@ class SheetHandler:
 
     def __init__(self, doc_key):
         self.doc_key = doc_key
-        self.authenticate()
+        self._authenticate()
 
-    def authenticate(self):
+    def _authenticate(self):
         """ Authenticates the bot for sheets access.
             Gotta call it before calling any of the other stuff. """
 
@@ -33,7 +33,7 @@ class SheetHandler:
         print("Authenticated.")
 
     @staticmethod
-    def get_service(service_type, version, scope):
+    def _get_service(service_type, version, scope):
         store = oauth_file.Storage(f'creds/token.json')
         creds = store.get()
         if not creds or creds.invalid:
@@ -41,13 +41,13 @@ class SheetHandler:
             creds = tools.run_flow(flow, store)
         return build(service_type, version, http=creds.authorize(Http()))
 
-    def get_sheet(self, sheet_name):
+    def _get_sheet(self, sheet_name) -> gspread.Worksheet:
         return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
 
-    def get_players(self):
+    def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
 
-        availability = self.get_sheet("Team Availability")
+        availability = self._get_sheet("Team Availability")
 
         print("Getting player cells...")
         player_range_end = availability.find("Tanks Available:").row
@@ -68,7 +68,7 @@ class SheetHandler:
                     sorted_players[role] = []
                 name = vals[2]
 
-                player_doc = self.get_sheet(name)
+                player_doc = self._get_sheet(name)
                 if player_doc:
                     available_times: List[Cell] = player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
@@ -88,7 +88,7 @@ class SheetHandler:
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
-        service = SheetHandler.get_service('sheets', 'v4', SheetHandler.script_scope[1])
+        service = SheetHandler._get_service('sheets', 'v4', SheetHandler.script_scope[1])
         response = service.spreadsheets().get(
             spreadsheetId=self.doc_key,
             fields='sheets(properties(title,sheetId),conditionalFormats)'
@@ -98,12 +98,12 @@ class SheetHandler:
         def get_value(rule: Dict): return rule['booleanRule']['condition']['values'][0]['userEnteredValue']
         return [get_value(rule) for rule in week_formats]
 
-    def get_week_schedule(self):
+    def get_week_schedule(self) -> WeekSchedule:
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
         # get all of the cell notes
         request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
-        service = SheetHandler.get_service('script', 'v1', SheetHandler.script_scope)
+        service = SheetHandler._get_service('script', 'v1', SheetHandler.script_scope)
         response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
         try:
             notes = response['response']['result']
@@ -112,7 +112,7 @@ class SheetHandler:
                   f"\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
             notes = [''] * 6
 
-        activity_sheet = self.get_sheet("Weekly Schedule")
+        activity_sheet = self._get_sheet("Weekly Schedule")
         day_rows = activity_sheet.range("B3:B9")
 
         def get_day(row, given_notes):
@@ -135,7 +135,7 @@ class SheetHandler:
     def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
 
-        sheet = self.get_sheet(sheet_name)
+        sheet = self._get_sheet(sheet_name)
 
         if len(values) != len(cells) and len(values) != 1:
             raise IndexError("Length of values given doesn't match the amount of cells.")
