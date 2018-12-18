@@ -2,7 +2,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-import datetime
+from dateutil.parser import parse
 import os
 import json
 
@@ -37,7 +37,7 @@ def load_creds(creds_path: str) -> Credentials:
 
     creds = Credentials(**creds_json)
 
-    creds.expiry = datetime.datetime.strptime(expiry, '%Y-%m-%dT%H:%M:%S')
+    creds.expiry = parse(expiry)
     return creds
 
 

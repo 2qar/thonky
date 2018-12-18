@@ -2,6 +2,8 @@ import gspread
 from gspread import Cell
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
+import datetime
+from dateutil.parser import parse
 from typing import List, Tuple, Dict
 
 from .creds_helper import get_creds
@@ -20,6 +22,7 @@ class SheetHandler:
     def __init__(self, doc_key):
         self.doc_key = doc_key
         self._authenticate()
+        self.last_modified = self._get_last_modified_time()
 
     def _authenticate(self):
         """ Authenticates the bot for sheets access.
@@ -37,6 +40,28 @@ class SheetHandler:
 
     def _get_sheet(self, sheet_name) -> gspread.Worksheet:
         return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
+
+    def _update_modified(self):
+        """ Set last_modified to right now without the whole microsecond junk """
+        now = datetime.datetime.utcnow()
+        self.last_modified = now - datetime.timedelta(microseconds=now.microsecond)
+
+    def _get_last_modified_time(self):
+        service = self._get_service('drive', 'v3', ['https://www.googleapis.com/auth/drive'])
+        response = service.files().get(fileId=self.doc_key, fields='modifiedTime').execute()
+
+        modified_time = response['modifiedTime']
+        modified_time = modified_time[:modified_time.rfind('.')]
+        return parse(modified_time)
+
+    @property
+    def updated(self):
+        modified_time = self._get_last_modified_time()
+
+        if modified_time <= self.last_modified:
+            return True
+
+        return False
 
     def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
@@ -142,5 +167,6 @@ class SheetHandler:
             for cell in cells:
                 cell.value = values[0]
         sheet.update_cells(cells)
+        self._update_modified()
 
         return before, values

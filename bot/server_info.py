@@ -48,6 +48,10 @@ class ServerInfo:
             if channel:
                 await channel.send(msg)
 
+        if self.sheet_handler.updated:
+            await try_send("Nothing to update.")
+            return
+
         if self.scanning:
             await try_send("Already updating.")
             return
@@ -73,4 +77,5 @@ class ServerInfo:
             self.scheduler.init_schedule_pings(ping_channel)
 
         self.scanning = False
+        self.sheet_handler._update_modified()
         await try_send("Finished updating. :)")
