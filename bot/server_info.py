@@ -63,7 +63,7 @@ class ServerInfo:
         self.scanning = True
 
         handler = SheetHandler(doc_key)
-        handler.authenticate()
+        handler._authenticate()
         self.players = handler.get_players()
         self.week_schedule = handler.get_week_schedule()
         self.valid_activities = handler.get_valid_activities()

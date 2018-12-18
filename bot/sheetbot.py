@@ -2,10 +2,9 @@ import gspread
 from gspread import Cell
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
-from httplib2 import Http
-from oauth2client import file as oauth_file, client, tools
 from typing import List, Tuple, Dict
 
+from .creds_helper import get_creds
 from .players import Player
 from .players import Players
 from .schedules import DaySchedule
@@ -33,13 +32,8 @@ class SheetHandler:
         print("Authenticated.")
 
     @staticmethod
-    def _get_service(service_type, version, scope):
-        store = oauth_file.Storage(f'creds/token.json')
-        creds = store.get()
-        if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('creds/client_secret.json', scope)
-            creds = tools.run_flow(flow, store)
-        return build(service_type, version, http=creds.authorize(Http()))
+    def _get_service(service_type, version, scopes):
+        return build(service_type, version, credentials=get_creds(service_type, scopes))
 
     def _get_sheet(self, sheet_name) -> gspread.Worksheet:
         return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
@@ -88,7 +82,7 @@ class SheetHandler:
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
-        service = SheetHandler._get_service('sheets', 'v4', SheetHandler.script_scope[1])
+        service = SheetHandler._get_service('sheets', 'v4', [SheetHandler.script_scope[1]])
         response = service.spreadsheets().get(
             spreadsheetId=self.doc_key,
             fields='sheets(properties(title,sheetId),conditionalFormats)'
