@@ -1,8 +1,8 @@
-import gspread
-from gspread import Cell
+from gspread import Client, Cell, Worksheet
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
-import datetime
+from google.auth.transport.requests import Request
+from datetime import datetime, timedelta
 from dateutil.parser import parse
 from typing import List, Tuple, Dict
 
@@ -13,38 +13,53 @@ from .schedules import DaySchedule
 from .schedules import WeekSchedule
 
 
-class SheetHandler:
+def strip_microseconds(dt: datetime) -> datetime:
+    return dt - timedelta(microseconds=dt.microsecond)
+
+
+def stripped_utcnow() -> datetime:
+    return strip_microseconds(datetime.utcnow())
+
+
+def check_creds(func):
+    def wrapper(*args):
+        self: SheetHandler = args[0]
+        if stripped_utcnow() > self.expiry:
+            self.auth.refresh(Request())
+        return func(*args)
+    return wrapper
+
+
+class SheetHandler(Client):
     """ Used for snatching some useful information from a sheet using a given doc key """
 
     script_scope = ['https://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
     script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
 
+    @staticmethod
+    def _get_expiry():
+        return stripped_utcnow() + timedelta(seconds=ServiceAccountCredentials.MAX_TOKEN_LIFETIME_SECS)
+
     def __init__(self, doc_key):
-        self.doc_key = doc_key
-        self._authenticate()
-        self.last_modified = self._get_last_modified_time()
-
-    def _authenticate(self):
-        """ Authenticates the bot for sheets access.
-            Gotta call it before calling any of the other stuff. """
-
-        print("Authenticating Google API...")
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        credentials = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
-        self.gc = gspread.authorize(credentials)
-        print("Authenticated.")
+        self.auth = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
+        super().__init__(self.auth)
+        self.login()
+
+        self.expiry = self._get_expiry()
+        self.doc_key = doc_key
+        self.last_modified = self._get_last_modified_time()
 
     @staticmethod
     def _get_service(service_type, version, scopes):
         return build(service_type, version, credentials=get_creds(service_type, scopes))
 
-    def _get_sheet(self, sheet_name) -> gspread.Worksheet:
-        return self.gc.open_by_key(self.doc_key).worksheet(sheet_name)
+    def _get_sheet(self, sheet_name) -> Worksheet:
+        return self.open_by_key(self.doc_key).worksheet(sheet_name)
 
     def _update_modified(self):
         """ Set last_modified to right now without the whole microsecond junk """
-        now = datetime.datetime.utcnow()
-        self.last_modified = now - datetime.timedelta(microseconds=now.microsecond)
+        self.last_modified = stripped_utcnow()
 
     def _get_last_modified_time(self):
         service = self._get_service('drive', 'v3', ['https://www.googleapis.com/auth/drive'])
@@ -63,6 +78,7 @@ class SheetHandler:
 
         return False
 
+    @check_creds
     def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
 
@@ -104,6 +120,7 @@ class SheetHandler:
         print("Done! :)")
         return player_obj
 
+    @check_creds
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
@@ -117,6 +134,7 @@ class SheetHandler:
         def get_value(rule: Dict): return rule['booleanRule']['condition']['values'][0]['userEnteredValue']
         return [get_value(rule) for rule in week_formats]
 
+    @check_creds
     def get_week_schedule(self) -> WeekSchedule:
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
@@ -151,6 +169,7 @@ class SheetHandler:
 
         return WeekSchedule(days)
 
+    @check_creds
     def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
 
