@@ -29,8 +29,8 @@ class ServerInfo:
             self.week_schedule = None
             self.valid_activities = None
 
-        self.scheduler = PingScheduler(guild_id, self)
-        self.scheduler.init_scheduler(self)
+        self.scheduler = PingScheduler(self)
+        self.scheduler.init_scheduler()
 
         self.scanning = False
 

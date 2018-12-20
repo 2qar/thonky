@@ -9,26 +9,22 @@ from .dbhandler import DBHandler
 
 
 class PingScheduler(AsyncIOScheduler):
-    def __init__(self, server_id, server_info):
+    def __init__(self, server_info):
+        self.server_info = server_info
+
         super().__init__()
         self.start()
         self.add_jobstore(MemoryJobStore(), alias='pings')
         self.add_jobstore(MemoryJobStore(), alias='vods')
 
-        self.server_id = server_id
         with open('config.json') as file:
             self.config = json.load(file)
-        self.server_info = server_info
         self.save_day_num = list(calendar.day_name).index(self.config['save_day'].title())
 
-    def init_scheduler(self, server_info):
-        #TODO: Load config once and pass it to the 3 methods below
-        #with DBHandler() as handler:
-            #self.server_info(
-
-        self.init_save_player_data(server_info)
-        self.init_auto_update(server_info)
-        channel = server_info.get_ping_channel()
+    def init_scheduler(self):
+        self.init_save_player_data(self.server_info)
+        self.init_auto_update(self.server_info)
+        channel = self.server_info.get_ping_channel()
         if channel:
             self.init_schedule_pings(channel)
         self.print_jobs()
@@ -64,7 +60,7 @@ class PingScheduler(AsyncIOScheduler):
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
     def init_schedule_pings(self, channel):
         with DBHandler() as handler:
-            config = handler.get_server_config(self.server_id)
+            config = handler.get_server_config(self.server_info.guild_id)
             role_mention = config['role_mention']
             remind_activities = [activity.lower() for activity in config['remind_activities']]
             remind_intervals = config['remind_intervals']
@@ -78,13 +74,13 @@ class PingScheduler(AsyncIOScheduler):
             day = days[day_index]
 
             # TODO: Unique job ID for VODs, better ID for days
-            def add_reminders(msg_start, index, search_list, jobstore, id=None):
+            def add_reminders(msg_start, index, search_list, jobstore, _id=None):
                 item = search_list[index]
                 time = datetime.datetime.combine(date, datetime.time(16 + index))
                 for interval in remind_intervals:
                     run_time = time - datetime.timedelta(minutes=interval)
                     message = f"{msg_start} {item} in {interval} minutes"
-                    ping_id = str(index) if not id else f"{id} {interval} min reminder"
+                    ping_id = str(index) if not _id else f"{_id} {interval} min reminder"
                     self.add_job(
                         channel.send,
                         'date',
@@ -108,7 +104,11 @@ class PingScheduler(AsyncIOScheduler):
                 # post the schedule at 9 AM
                 morning_runtime = datetime.datetime.combine(date, datetime.time(9))
                 morning_ping_id = day.name + "_morning_ping"
-                embed = get_formatter('PST').get_day_schedule(self.server_id, self.server_info.players, day_index)
+                embed = get_formatter('PST').get_day_schedule(
+                    self.server_info.guild_id,
+                    self.server_info.players,
+                    day_index
+                )
                 self.add_job(
                     channel.send,
                     'date',
@@ -119,4 +119,4 @@ class PingScheduler(AsyncIOScheduler):
                     jobstore='pings'
                 )
 
-                add_reminders(role_mention, first_activity, day.activities, 'pings', id=day)
+                add_reminders(role_mention, first_activity, day.activities, 'pings', _id=day)
