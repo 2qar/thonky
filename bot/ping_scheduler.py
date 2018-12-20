@@ -17,14 +17,14 @@ class PingScheduler(AsyncIOScheduler):
 
         self.server_id = server_id
         with open('config.json') as file:
-                self.config = json.load(file)
+            self.config = json.load(file)
         self.server_info = server_info
         self.save_day_num = list(calendar.day_name).index(self.config['save_day'].title())
 
     def init_scheduler(self, server_info):
         #TODO: Load config once and pass it to the 3 methods below
         #with DBHandler() as handler:
-                #self.server_info(
+            #self.server_info(
 
         self.init_save_player_data(server_info)
         self.init_auto_update(server_info)
@@ -35,11 +35,9 @@ class PingScheduler(AsyncIOScheduler):
 
     def init_save_player_data(self, server_info, save_day=None):
         save_time = self.config['save_time']
-        players = self.server_info.players
-        week_schedule = self.server_info.week_schedule
 
         # gets save day first time this method is called or gets next save day from previous save day given
-        if save_day == None:
+        if save_day is None:
             today = datetime.date.today()
             monday = today - datetime.timedelta(days=today.weekday())
             save_day = monday + datetime.timedelta(days=self.save_day_num)
@@ -52,18 +50,18 @@ class PingScheduler(AsyncIOScheduler):
         if automated_save_missed:
             server_info.save_players()
             next_save_day = today + datetime.timedelta(days=self.save_day_num)
-            run_time = datetime.datetime.combine(next_save_day, save_time_as_date)
+            run_time = datetime.datetime.combine(next_save_day.date(), save_time_as_date)
         else:
             run_time = datetime.datetime.combine(save_day, save_time_as_date)
 
         self.add_job(server_info.save_players, 'date', run_date=run_time)
         self.add_job(self.init_save_player_data, 'date', run_date=run_time, args=[save_day])
 
-    # TODO: Get rid of this in favor of an event handler on the spreadsheet that triggers the bot to update
     def init_auto_update(self, server_info):
         update_interval = self.config['update_interval']
         self.add_job(server_info.update, 'interval', minutes=update_interval, id="update_schedule")
 
+    # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
     def init_schedule_pings(self, channel):
         with DBHandler() as handler:
             config = handler.get_server_config(self.server_id)
