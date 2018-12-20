@@ -90,5 +90,5 @@ class ServerInfo:
             self.scheduler.init_schedule_pings(ping_channel)
 
         self.scanning = False
-        self.sheet_handler._update_modified()
+        self.sheet_handler.update_modified()
         await try_send("Finished updating. :)")

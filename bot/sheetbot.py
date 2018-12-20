@@ -57,10 +57,6 @@ class SheetHandler(Client):
     def _get_sheet(self, sheet_name) -> Worksheet:
         return self.open_by_key(self.doc_key).worksheet(sheet_name)
 
-    def _update_modified(self):
-        """ Set last_modified to right now without the whole microsecond junk """
-        self.last_modified = stripped_utcnow()
-
     def _get_last_modified_time(self):
         service = self._get_service('drive', 'v3', ['https://www.googleapis.com/auth/drive'])
         response = service.files().get(fileId=self.doc_key, fields='modifiedTime').execute()
@@ -68,6 +64,10 @@ class SheetHandler(Client):
         modified_time = response['modifiedTime']
         modified_time = modified_time[:modified_time.rfind('.')]
         return parse(modified_time)
+
+    def update_modified(self):
+        """ Set last_modified to right now without the whole microsecond junk """
+        self.last_modified = stripped_utcnow()
 
     @property
     def updated(self):
@@ -186,6 +186,6 @@ class SheetHandler(Client):
             for cell in cells:
                 cell.value = values[0]
         sheet.update_cells(cells)
-        self._update_modified()
+        self.update_modified()
 
         return before, values
