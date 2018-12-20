@@ -7,19 +7,6 @@ from typing import Union
 from .server_info import ServerInfo
 from .dbhandler import DBHandler
 
-# TODO: Rewrite sheetbot and odscraper as modules with their own formatters
-'''
-bot
-    modules
-        odscraper
-            odformatter
-            functionality stuff
-        sheetbot
-            sheet_formatter
-            functionality stuff
-
-    Pass the bot and channel to the formatter and the formatter constructs embeds AND sends the message
-'''
 
 # TODO: Maybe write spreadsheet info to the disk so the sheets dont have to get scanned every time the bot is booted
 

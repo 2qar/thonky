@@ -420,7 +420,6 @@ class SheetInfo:
             else:
                 await ctx.send(f"Invalid day / player \"{split[0]}\"")
 
-    # TODO: Check the sheet to see if it's actually changed before just pulling changes
     @commands.command(pass_context=True)
     async def update(self, ctx):
         """ Pull any new changes from the sheet. """
