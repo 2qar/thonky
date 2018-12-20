@@ -31,6 +31,15 @@ class SheetInfo:
     def server_info(self, guild_id: typing.Union[str, int]):
         return self.bot.server_info[str(guild_id)]
 
+    def __global_check(self, ctx):
+        with DBHandler() as handler:
+            return bool(handler.get_server_config(ctx.guild.id)['doc_key'])
+
+    async def on_command_error(self, ctx, exception):
+        print(exception)
+        if type(ctx.cog) == type(self) and not self.server_info(ctx.guild.id).sheet_handler:
+            await ctx.send("No doc key provided.")
+
     @staticmethod
     def get_day_int(day: str):
         try:

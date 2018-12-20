@@ -7,15 +7,28 @@ from .dbhandler import DBHandler
 
 
 class ServerInfo:
+    def _init_sheet(self, doc_key: str):
+        self.sheet_handler = SheetHandler(doc_key)
+        self._init_sheet_attrs()
+
+    def _init_sheet_attrs(self):
+        self.players = self.sheet_handler.get_players()
+        self.week_schedule = self.sheet_handler.get_week_schedule()
+        self.valid_activities = self.sheet_handler.get_valid_activities()
+
     def __init__(self, guild_id, config, bot):
         self.guild_id = guild_id
         self.config = config
         self.bot = bot
 
-        self.sheet_handler = SheetHandler(config['doc_key'])
-        self.players = self.sheet_handler.get_players()
-        self.week_schedule = self.sheet_handler.get_week_schedule()
-        self.valid_activities = self.sheet_handler.get_valid_activities()
+        if self.config['doc_key']:
+            self._init_sheet(self.config['doc_key'])
+        else:
+            self.sheet_handler = None
+            self.players = None
+            self.week_schedule = None
+            self.valid_activities = None
+
         self.scheduler = PingScheduler(guild_id, self)
         self.scheduler.init_scheduler(self)
 
@@ -66,11 +79,11 @@ class ServerInfo:
 
         self.scanning = True
 
-        handler = SheetHandler(doc_key)
-        handler._authenticate()
-        self.players = handler.get_players()
-        self.week_schedule = handler.get_week_schedule()
-        self.valid_activities = handler.get_valid_activities()
+        if not self.sheet_handler:
+            self._init_sheet(doc_key)
+        else:
+            self.sheet_handler.doc_key = doc_key
+            self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
         if ping_channel:
