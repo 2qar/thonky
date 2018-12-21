@@ -61,9 +61,10 @@ class ServerInfo:
             if channel:
                 await channel.send(msg)
 
-        if self.sheet_handler.updated:
-            await try_send("Nothing to update.")
-            return
+        if self.sheet_handler is not None:
+            if self.sheet_handler.updated:
+                await try_send("Nothing to update.")
+                return
 
         if self.scanning:
             await try_send("Already updating.")
