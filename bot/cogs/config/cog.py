@@ -1,7 +1,11 @@
+import aiohttp
 from discord.ext import commands
 from discord.ext.commands import Context
-from ...dbhandler import DBHandler
+from discord import Embed, Color
 import re
+
+from ...dbhandler import DBHandler
+from ...formatter import thonk_link, sheet_url
 
 base_sheet_url = 'https://docs.google.com/spreadsheets/d/'
 
@@ -123,6 +127,46 @@ class Config:
             with DBHandler() as handler:
                 handler.update_server_config(ctx.guild.id, 'stage_id', stage_id)
             await ctx.send("Tournament set. :)")
+
+    @commands.command(pass_context=True)
+    async def show_config(self, ctx: Context):
+        embed = Embed(colour=Color.from_rgb(255, 204, 77))
+        embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
+        embed.set_thumbnail(url=thonk_link)
+
+        with DBHandler() as handler:
+            config = handler.get_server_config(ctx.guild.id)
+
+        embed.set_thumbnail(url=f"{sheet_url}{config['doc_key']}")
+
+        def add_field(name: str, value: str): embed.add_field(name=name, value=value, inline=False)
+
+        add_field("Reminder Channel", self.bot.get_channel(int(config['announce_channel'])).mention)
+        add_field("Reminder Ping", config['role_mention'])
+        add_field("Reminder Activities", ', '.join(config['remind_activities']))
+        add_field("Intervals", ', '.join([str(item) for item in config['remind_intervals']]))
+        add_field("Sheet Update Interval", config['update_interval'])
+
+        session = aiohttp.ClientSession()
+
+        async def get_json(url: str) -> dict:
+            async with session.get(url, headers={'User-Agent': 'thonky'}) as response:
+                return await response.json()
+
+        tournament_json = await get_json(
+            f"https://dtmwra1jsgyb0.cloudfront.net/stages/{config['stage_id']}?extend[groups][teams]=true"
+        )
+        tournament_name = tournament_json[0]['name']
+        add_field("Tournament Name", tournament_name)
+
+        team_info = await get_json(f"https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/5bfe1b9418ddd9114f14efb0")
+        team_name = team_info[0]['name']
+        team_link = f"https://battlefy.com/{team_info[0]['_id']}"
+        add_field("Team", f"{team_name}\n{team_link}")
+
+        await session.close()
+
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
