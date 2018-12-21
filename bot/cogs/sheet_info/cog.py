@@ -22,6 +22,7 @@ class Day(commands.Converter):
 class SheetInfo:
     def __init__(self, bot):
         self.bot = bot
+        self.bot.add_listener(self._on_command_error, 'on_command_error')
 
     def get_player_by_name(self, guild_id: int, player_name: str):
         for player in self.server_info(guild_id).players.unsorted_list:
@@ -35,7 +36,7 @@ class SheetInfo:
         with DBHandler() as handler:
             return bool(handler.get_server_config(ctx.guild.id)['doc_key'])
 
-    async def on_command_error(self, ctx, exception):
+    async def _on_command_error(self, ctx, exception):
         print(exception)
         if type(ctx.cog) == type(self) and not self.server_info(ctx.guild.id).sheet_handler:
             await ctx.send("No doc key provided.")
