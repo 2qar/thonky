@@ -129,6 +129,22 @@ class Config:
             await ctx.send("Tournament set. :)")
 
     @commands.command(pass_context=True)
+    async def set_update(self, ctx: Context, update_interval: str):
+        """ Set the sheet update interval (in minutes). """
+        try:
+            interval = int(update_interval)
+        except ValueError:
+            await ctx.send(f"\"{update_interval}\" isn't a number. :(")
+            return
+
+        limit = 5
+        if interval < limit:
+            await ctx.send(f"Less than {limit} minutes is too quick. :(")
+        else:
+            write_property(ctx.guild.id, 'update_interval', interval)
+            await ctx.send("Update interval set. :)")
+
+    @commands.command(pass_context=True)
     async def show_config(self, ctx: Context):
         embed = Embed(colour=Color.from_rgb(255, 204, 77))
         embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
