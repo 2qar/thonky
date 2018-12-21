@@ -90,7 +90,7 @@ class Config:
             await write_role(role_mention)
         else:
             for role in ctx.guild.roles:
-                if role.name.lower() == role_mention:
+                if role.name.lower() == role_mention.lower():
                     await write_role(role.mention)
                     return
             await ctx.send(f"Invalid role \"{role_mention}\". :(")
