@@ -4,7 +4,7 @@ import datetime
 import calendar
 import json
 
-from .formatter import get_formatter
+from .formatter import get_formatter, Formatter
 from .dbhandler import DBHandler
 
 
@@ -15,7 +15,6 @@ class PingScheduler(AsyncIOScheduler):
         super().__init__()
         self.start()
         self.add_jobstore(MemoryJobStore(), alias='pings')
-        self.add_jobstore(MemoryJobStore(), alias='vods')
 
         with open('config.json') as file:
             self.config = json.load(file)
@@ -57,7 +56,27 @@ class PingScheduler(AsyncIOScheduler):
         update_interval = self.config['update_interval']
         self.add_job(server_info.update, 'interval', minutes=update_interval, id="update_schedule")
 
+    def _add_ping(self, date, channel, msg_start, time_offset, search_list, intervals=(0,)):
+        item = search_list[time_offset]
+        time = datetime.datetime.combine(date, datetime.time(16 + time_offset))
+        for interval in intervals:
+            run_time = time - datetime.timedelta(minutes=interval)
+            message = f"{msg_start} {item} in {interval} minutes"
+            day_name = Formatter.day_name(date.weekday())
+            ping_id = f"{day_name} {time_offset} {interval}"
+            self.add_job(
+                channel.send,
+                'date',
+                name=item,
+                run_date=run_time,
+                args=[message],
+                id=ping_id,
+                jobstore='pings',
+                replace_existing=True
+            )
+
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
+        # ^ maybe only do this if pinging for every activity becomes a thing again
     def init_schedule_pings(self, channel):
         with DBHandler() as handler:
             config = handler.get_server_config(self.server_info.guild_id)
@@ -69,35 +88,8 @@ class PingScheduler(AsyncIOScheduler):
         days = self.server_info.week_schedule.days
         start_date = days[0].as_date()
 
-        for day_index in range(today, len(days)):
+        for day_index, day in enumerate(days[today::]):
             date = start_date + datetime.timedelta(days=day_index)
-            day = days[day_index]
-
-            # TODO: Unique job ID for VODs, better ID for days
-            def add_reminders(msg_start, index, search_list, jobstore, _id=None):
-                item = search_list[index]
-                time = datetime.datetime.combine(date, datetime.time(16 + index))
-                for interval in remind_intervals:
-                    run_time = time - datetime.timedelta(minutes=interval)
-                    message = f"{msg_start} {item} in {interval} minutes"
-                    ping_id = str(index) if not _id else f"{_id} {interval} min reminder"
-                    self.add_job(
-                        channel.send,
-                        'date',
-                        run_date=run_time,
-                        args=[message],
-                        id=ping_id,
-                        replace_existing=True,
-                        jobstore=jobstore
-                    )
-
-            # FIXME: no VODs being scheduled
-            vods = day.get_vods()
-            for vod in vods:
-                add_reminders("Player VOD for", vod, day.notes, 'vods')
-            for job in self.get_jobs(jobstore='vods'):
-                if not int(job.id) in vods:
-                    self.remove_job(job.id, jobstore='vods')
 
             first_activity = day.first_activity(remind_activities)
             if first_activity != -1:
@@ -119,4 +111,5 @@ class PingScheduler(AsyncIOScheduler):
                     jobstore='pings'
                 )
 
-                add_reminders(role_mention, first_activity, day.activities, 'pings', _id=day)
+                # TODO: check for existing jobs and modify them on update instead of replacing them entirely maybe
+                self._add_ping(date, channel, role_mention, first_activity, day.activities, intervals=remind_intervals)
