@@ -19,6 +19,13 @@ class Day(commands.Converter):
             return argument
 
 
+def if_doc_key():
+    def predicate(ctx):
+        with DBHandler() as handler:
+            return bool(handler.get_server_config(ctx.guild.id)['doc_key'])
+    return commands.check(predicate)
+
+
 class SheetInfo:
     def __init__(self, bot):
         self.bot = bot
@@ -32,14 +39,12 @@ class SheetInfo:
     def server_info(self, guild_id: typing.Union[str, int]):
         return self.bot.server_info[str(guild_id)]
 
-    def __global_check(self, ctx):
-        with DBHandler() as handler:
-            return bool(handler.get_server_config(ctx.guild.id)['doc_key'])
-
     async def _on_command_error(self, ctx, exception):
-        print(exception)
-        if type(ctx.cog) == type(self) and not self.server_info(ctx.guild.id).sheet_handler:
-            await ctx.send("No doc key provided.")
+        if type(ctx.cog) == type(self):
+            if not self.server_info(ctx.guild.id).sheet_handler:
+                await ctx.send("No doc key provided.")
+            else:
+                await ctx.send(f"{exception} :(")
 
     @staticmethod
     def get_day_int(day: str):
@@ -52,6 +57,7 @@ class SheetInfo:
                 pass
 
     @commands.command(pass_context=True)
+    @if_doc_key()
     async def avg(self, ctx, player_name: str):
         """ Check the average responses for a player.
 
@@ -74,6 +80,7 @@ class SheetInfo:
 
     # TODO: Fix day and tz getting mixed up when trying to do something like "!check ads pst"
     @commands.command(pass_context=True)
+    @if_doc_key()
     async def check(self, ctx, player_name: str,
                     day: typing.Optional[Day] = '',
                     time: typing.Optional[int] = 0,
@@ -111,6 +118,7 @@ class SheetInfo:
             await ctx.send(f"No player named \"{player_name}\"")
 
     @commands.command(pass_context=True)
+    @if_doc_key()
     async def get(self, ctx, *, args: str):
         """ Get information from the configured spreadsheet.
 
@@ -260,6 +268,7 @@ class SheetInfo:
                     await ctx.send(msg)
 
     @commands.command(pass_context=True, hidden=True)
+    @if_doc_key()
     async def set(self, ctx, *, args):
         """ Update information on the configured spreadsheet.
 
@@ -422,6 +431,7 @@ class SheetInfo:
                 await ctx.send(f"Invalid day / player \"{split[0]}\"")
 
     @commands.command(pass_context=True)
+    @if_doc_key()
     async def update(self, ctx):
         """ Pull any new changes from the sheet. """
 
