@@ -68,13 +68,28 @@ class Config:
 
     @commands.command(pass_context=True)
     async def set_role(self, ctx: Context, role_mention: str):
-        """ Sets the role to ping in reminder messages. """
+        """ Sets the role to ping in reminder messages.
 
-        if not re.match('<@&\d{18}>', role_mention):
-            await ctx.send("Invalid role.")
-        else:
-            write_property(ctx.guild.id, 'role_mention', role_mention)
+            Mention a role...
+                !set @everyone
+            or give the name of a role...
+                !set Default
+            role names with more than 1 word need quotes
+                !set "Default Role"
+        """
+
+        async def write_role(mention: str):
+            write_property(ctx.guild.id, 'role_mention', mention)
             await ctx.send("Role set. :)")
+
+        if re.match('<@&\d{18}>', role_mention):
+            await write_role(role_mention)
+        else:
+            for role in ctx.guild.roles:
+                if role.name.lower() == role_mention:
+                    await write_role(role.mention)
+                    return
+            await ctx.send(f"Invalid role \"{role_mention}\". :(")
 
     @commands.command(pass_context=True)
     async def set_team(self, ctx: Context, team_url: str):
