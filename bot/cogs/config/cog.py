@@ -175,7 +175,7 @@ class Config:
         tournament_name = tournament_json[0]['name']
         add_field("Tournament Name", tournament_name)
 
-        team_info = await get_json(f"https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/5bfe1b9418ddd9114f14efb0")
+        team_info = await get_json(f"https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/{config['team_id']}")
         team_name = team_info[0]['name']
         team_link = f"https://battlefy.com/teams/{team_info[0]['_id']}"
         add_field("Team", f"{team_name}\n{team_link}")
