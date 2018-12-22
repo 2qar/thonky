@@ -33,14 +33,18 @@ class ODScraper:
 
         embed.set_thumbnail(url=team_info['logo'])
         
-        players_with_info = [player for player in team_info['players'] if player['info']]
+        players_with_info = [player for player in team_info['players'] if player['info'] is not None]
         players = sorted(players_with_info, key=lambda k: k['info'].get_sr(), reverse=True)
 
         def format_player_info(player: dict) -> str:
             if not player['info']:
                 return ":ghost: " + player['name']
             else:
-                role_emote = overbuff_role_emotes[player['info'].get_role()[0]]
+                main_role = player['info'].get_role()
+                if main_role:
+                    role_emote = overbuff_role_emotes[main_role[0]]
+                else:
+                    role_emote = ':ghost:'
                 sr = player['info'].get_sr()
                 if sr == 0:
                     sr = '???'
