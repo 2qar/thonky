@@ -30,6 +30,11 @@ def get_last_link_element(link: str) -> str:
 class Config:
     def __init__(self, bot):
         self.bot = bot
+        self.bot.add_listener(self._on_command_error, 'on_command_error')
+
+    async def _on_command_error(self, ctx, exception):
+        if type(ctx.cog) == type(self):
+            await ctx.send(exception)
 
     @commands.command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
