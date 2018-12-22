@@ -1,10 +1,6 @@
 from aiohttp import ClientSession
-import pybuff
+from pybuff import get_player, BadBattletag
 import typing
-
-team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season-3' \
-                  '-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{} '
 
 
 class LinkNotFound(Exception):
@@ -26,14 +22,15 @@ async def get_player_info(player_json: dict, session: ClientSession, owner=False
             pass
         
     try:
-        player_info['info'] = await pybuff.get_player(battletag, session=session)
-    except pybuff.BadBattletag:
+        player_info['info'] = await get_player(battletag, session=session)
+    except BadBattletag:
         player_info['info'] = None
 
     return player_info
 
 
 async def get_team_info(persistent_team_id: str, session: ClientSession) -> dict or str:
+    team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
     curr_link = team_link + persistent_team_id
     async with session.get(curr_link) as request:
         if request.status == 200:
@@ -117,9 +114,14 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> typ
 
     session = ClientSession()
 
+    # TODO: Save tournament URL in !set_tourney and pass it here because this URL is wrong lmao
+    match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season' \
+                      '-3-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{} '
+
     # get the match link
     match = await get_match(stage_id, od_round, team_id, session)
     if not match:
+        await session.close()
         return
     match_link = match_link_base.format(match['stageID'], match['_id'])
     
