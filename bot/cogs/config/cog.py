@@ -160,9 +160,18 @@ class Config:
 
         embed.set_thumbnail(url=f"{sheet_url}{config['doc_key']}")
 
-        def add_field(name: str, value: str): embed.add_field(name=name, value=value, inline=False)
+        def add_field(name: str, value: str):
+            if value is None:
+                value = "None"
+            embed.add_field(name=name, value=value, inline=False)
 
-        add_field("Reminder Channel", self.bot.get_channel(int(config['announce_channel'])).mention)
+        try:
+            channel_id = int(config['announce_channel'])
+            channel_mention = self.bot.get_channel(channel_id).mention
+        except TypeError:
+            channel_mention = "None"
+
+        add_field("Reminder Channel", channel_mention)
         add_field("Reminder Ping", config['role_mention'])
         add_field("Reminder Activities", ', '.join(config['remind_activities']))
         add_field("Intervals", ', '.join([str(item) for item in config['remind_intervals']]))
@@ -172,18 +181,25 @@ class Config:
 
         async def get_json(url: str) -> dict:
             async with session.get(url, headers={'User-Agent': 'thonky'}) as response:
-                return await response.json()
+                if response.status != 404:
+                    return await response.json()
 
         tournament_json = await get_json(
             f"https://dtmwra1jsgyb0.cloudfront.net/stages/{config['stage_id']}?extend[groups][teams]=true"
         )
-        tournament_name = tournament_json[0]['name']
-        add_field("Tournament Name", tournament_name)
+        if tournament_json:
+            tournament_name = tournament_json[0]['name']
+            add_field("Tournament Name", tournament_name)
+        else:
+            add_field("Tournament Name", "None")
 
         team_info = await get_json(f"https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/{config['team_id']}")
-        team_name = team_info[0]['name']
-        team_link = f"https://battlefy.com/teams/{team_info[0]['_id']}"
-        add_field("Team", f"{team_name}\n{team_link}")
+        if team_info:
+            team_name = team_info[0]['name']
+            team_link = f"https://battlefy.com/teams/{team_info[0]['_id']}"
+            add_field("Team", f"{team_name}\n{team_link}")
+        else:
+            add_field("Team", "None")
 
         await session.close()
 
