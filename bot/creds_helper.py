@@ -41,9 +41,8 @@ def load_creds(creds_path: str) -> Credentials:
     return creds
 
 
-# TODO: Instead of creating creds for each service, make one token with all scopes needed when SheetHandlers are made
-def get_creds(service: str, scopes: List[str]) -> Credentials:
-    creds_path = f'creds/{service}_token.json'
+def get_creds(scopes: List[str]) -> Credentials:
+    creds_path = f'creds/token.json'
     if not os.path.exists(creds_path):
         flow = InstalledAppFlow.from_client_secrets_file('creds/client_secret.json', scopes)
         creds = flow.run_local_server(port=9999)

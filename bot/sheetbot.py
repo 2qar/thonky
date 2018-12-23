@@ -33,7 +33,6 @@ def check_creds(func):
 class SheetHandler(Client):
     """ Used for snatching some useful information from a sheet using a given doc key """
 
-    script_scope = ['https://www.googleapis.com/auth/script.projects', 'https://www.googleapis.com/auth/spreadsheets']
     script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
 
     @staticmethod
@@ -51,14 +50,19 @@ class SheetHandler(Client):
         self.last_modified = self._get_last_modified_time()
 
     @staticmethod
-    def _get_service(service_type, version, scopes):
-        return build(service_type, version, credentials=get_creds(service_type, scopes))
+    def _get_service(service_type, version):
+        scopes = [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/script.projects',
+            'https://www.googleapis.com/auth/spreadsheets'
+        ]
+        return build(service_type, version, credentials=get_creds(scopes))
 
     def _get_sheet(self, sheet_name) -> Worksheet:
         return self.open_by_key(self.doc_key).worksheet(sheet_name)
 
     def _get_last_modified_time(self):
-        service = self._get_service('drive', 'v3', ['https://www.googleapis.com/auth/drive'])
+        service = self._get_service('drive', 'v3')
         response = service.files().get(fileId=self.doc_key, fields='modifiedTime').execute()
 
         modified_time = response['modifiedTime']
@@ -124,7 +128,7 @@ class SheetHandler(Client):
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
-        service = SheetHandler._get_service('sheets', 'v4', [SheetHandler.script_scope[1]])
+        service = SheetHandler._get_service('sheets', 'v4')
         response = service.spreadsheets().get(
             spreadsheetId=self.doc_key,
             fields='sheets(properties(title,sheetId),conditionalFormats)'
@@ -140,7 +144,7 @@ class SheetHandler(Client):
 
         # get all of the cell notes
         request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
-        service = SheetHandler._get_service('script', 'v1', SheetHandler.script_scope)
+        service = SheetHandler._get_service('script', 'v1')
         response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
         try:
             notes = response['response']['result']
