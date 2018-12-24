@@ -153,17 +153,20 @@ class Config:
     async def show_config(self, ctx: Context):
         embed = Embed(colour=Color.from_rgb(255, 204, 77))
         embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
-        embed.set_thumbnail(url=thonk_link)
 
         with DBHandler() as handler:
             config = handler.get_server_config(ctx.guild.id)
-
-        embed.set_thumbnail(url=f"{sheet_url}{config['doc_key']}")
 
         def add_field(name: str, value: str):
             if value is None:
                 value = "None"
             embed.add_field(name=name, value=value, inline=False)
+
+        if config['doc_key']:
+            current_sheet = f"{sheet_url}{config['doc_key']}"
+            add_field("Sheet", current_sheet)
+        else:
+            add_field("Sheet", "None")
 
         try:
             channel_id = int(config['announce_channel'])
