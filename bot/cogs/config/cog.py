@@ -151,7 +151,7 @@ class Config:
 
     @commands.command(pass_context=True)
     async def show_config(self, ctx: Context):
-        embed = Embed(colour=Color.from_rgb(255, 204, 77))
+        embed = Embed(colour=Color.blue())
         embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
 
         with DBHandler() as handler:
