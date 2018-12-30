@@ -5,6 +5,7 @@ import os
 from typing import Union
 
 from .server_info import ServerInfo
+from .ping_scheduler import PingScheduler
 from .dbhandler import DBHandler
 
 
@@ -15,6 +16,7 @@ class Bot(DiscordBot):
     def __init__(self, token):
         super().__init__('!')
         self.server_info = {}
+        self.ping_scheduler = PingScheduler()
         self.run(token)
 
     def add_cogs(self):

@@ -1,8 +1,8 @@
 from discord import NotFound
 from calendar import day_name as day_names
+from apscheduler.jobstores.memory import MemoryJobStore
 
 from .sheetbot import SheetHandler
-from .ping_scheduler import PingScheduler
 from .dbhandler import DBHandler
 
 
@@ -21,16 +21,19 @@ class ServerInfo:
         self.config = config
         self.bot = bot
 
+        self.jobstores = {
+            "maintenance": MemoryJobStore(),
+            "pings": MemoryJobStore()
+        }
+
         if self.config['doc_key']:
             self._init_sheet(self.config['doc_key'])
+            bot.ping_scheduler.setup_guild(self)
         else:
             self.sheet_handler = None
             self.players = None
             self.week_schedule = None
             self.valid_activities = None
-
-        self.scheduler = PingScheduler(self)
-        self.scheduler.init_scheduler()
 
         self.scanning = False
 
@@ -87,8 +90,11 @@ class ServerInfo:
             self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
-        if ping_channel:
-            self.scheduler.init_schedule_pings(ping_channel)
+        has_guild = self.bot.ping_scheduler.has_guild(self.guild_id)
+        if ping_channel and has_guild:
+            self.bot.ping_scheduler.init_schedule_pings(self.get_ping_channel(), self)
+        elif not has_guild:
+            self.bot.ping_scheduler.setup_guild(self)
 
         self.scanning = False
         self.sheet_handler.update_modified()
