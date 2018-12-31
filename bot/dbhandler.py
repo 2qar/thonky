@@ -16,6 +16,11 @@ def dictify(data, fields):
     return formatted_data
 
 
+def get_check(field_name: str, case_sensitive):
+    """ Wrap the check in LOWER() if case_sensitive """
+    return f"WHERE {field_name} = %s" if case_sensitive else "WHERE LOWER({field_name}) = LOWER(%s)"
+
+
 class DBHandler:
     def __init__(self):
         with open('config.json') as config_file:
@@ -36,7 +41,7 @@ class DBHandler:
             :param str extra_query: extra checks for searching
         """
 
-        check = f"WHERE {field_name} = %s" if case_sensitive else f"WHERE LOWER({field_name}) = LOWER(%s)"
+        check = get_check(field_name, case_sensitive)
         self.cursor.execute(f"""
                 SELECT * FROM {table_name}
                 {check} {extra_query}
@@ -47,11 +52,30 @@ class DBHandler:
         else:
             return results[0]
 
+    def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
+                case_sensitive=True, extra_query=''):
+        """ Update row(s) from a table where a given field matches a given value. """
+
+        check = get_check(check_field, case_sensitive)
+        self.cursor.execute(f"""
+                UPDATE {table_name}
+                SET {update_field} = %s
+                {check} {extra_query}
+                """, (update_value, check_value))
+        self.conn.commit()
+
     def get_server_config(self, server_id: int):
         return self._search('server_config', 'server_id', server_id)
 
+    def update_server_config(self, server_id: int, key: str, value: Any):
+        self._update('server_config', 'server_id', server_id, key, value)
+
     def get_team_config(self, team_name: str):
         return self._search('teams', 'team_name', team_name, case_sensitive=False)
+
+    def update_team_config(self, guild_id: int, team_name: str, key: str, value: Any):
+        extra_query = f"AND server_id = '{guild_id}'"
+        return self._update('teams', 'name', team_name, key, value, case_sensitive=True, extra_query=extra_query)
 
     def get_teams(self, guild_id: int):
         return self._search('teams', 'server_id', guild_id, all_results=True)
@@ -83,16 +107,6 @@ class DBHandler:
                 INSERT INTO server_config
                 VALUES ({formatted_config_base})
                 """
-        self.cursor.execute(query)
-        self.conn.commit()
-
-    def update_server_config(self, server_id: int, key: str, value):
-        query = f"""
-                UPDATE server_config
-                SET {key} = '{value}'
-                WHERE server_id = '{server_id}'
-                """
-        query = format_arrays(query)
         self.cursor.execute(query)
         self.conn.commit()
 
