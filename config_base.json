@@ -1,9 +1,0 @@
-{
-	"doc_key": "",
-	"team_id": "",
-	"announce_channel": "",
-	"role_mention": "@everyone",
-	"remind_intervals": [45, 15],
-	"update_interval": 30,
-	"non_reminder_activites": ["Free", "TBD", "Player VOD"]
-}
