@@ -11,11 +11,8 @@ class DataAnalyzer:
             player_data = handler.get_player_data(guild_id, player_name)
 
             response_data = {}
-            if isinstance(player_data, list):
-                for entry in player_data:
-                    response_data[entry['date']] = entry['availability']
-            else:
-                response_data[player_data['date']] = player_data['availability']
+            for entry in player_data:
+                response_data[entry['date']] = entry['availability']
 
             return response_data
 

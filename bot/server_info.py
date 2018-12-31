@@ -125,6 +125,10 @@ class GuildInfo(BaseInfo):
     def __init__(self, guild_id, config, bot):
         super().__init__(guild_id, config, bot)
 
+        def get_team_info(team_config): return TeamInfo(guild_id, team_config, bot)
+        with DBHandler() as handler:
+            self._teams = [get_team_info(team_config) for team_config in handler.get_teams(guild_id)]
+
     def get_id(self):
         return self.guild_id
 

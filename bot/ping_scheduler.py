@@ -15,7 +15,7 @@ class PingScheduler(AsyncIOScheduler):
     def __init__(self):
         super().__init__()
         self.start()
-        self.guild_id = 0
+        self.info = None
 
         with open('config.json') as file:
             self.config = json.load(file)
@@ -31,7 +31,7 @@ class PingScheduler(AsyncIOScheduler):
         for key, jobstore in info.jobstores.items():
             self.add_jobstore(jobstore, alias=f"{info.get_id()}_{key}")
 
-        self.guild_id = info.guild_id
+        self.info = info
         self.init_save_player_data(info)
         self.init_auto_update(info)
         channel = info.get_ping_channel()
@@ -40,7 +40,7 @@ class PingScheduler(AsyncIOScheduler):
         self.print_jobs()
 
     def add_guild_job(self, func: Callable, run_date: datetime, jobstore: str, **kwargs):
-        self.add_job(func, 'date', run_date=run_date, jobstore=f"{self.guild_id}_{jobstore}", **kwargs)
+        self.add_job(func, 'date', run_date=run_date, jobstore=f"{self.info.get_id()}_{jobstore}", **kwargs)
 
     def init_save_player_data(self, server_info, save_day=None):
         save_time = self.config['save_time']
@@ -68,7 +68,8 @@ class PingScheduler(AsyncIOScheduler):
 
     def init_auto_update(self, server_info):
         update_interval = self.config['update_interval']
-        self.add_job(server_info.update, 'interval', minutes=update_interval, id="update_schedule")
+        self.add_job(server_info.update, 'interval', minutes=update_interval, id="update_schedule",
+                     jobstore=f"{self.info.get_id()}_maintenance")
 
     def _add_ping(self, date, channel, msg_start, time_offset, search_list, intervals=(0,)):
         item = search_list[time_offset]

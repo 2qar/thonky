@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 import psycopg2
 import json
 
@@ -29,7 +29,8 @@ class DBHandler:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query=''):
+    def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query='',
+                all_results=False):
         """ Get row(s) from a table where a given field matches a given value.
 
             :param str extra_query: extra checks for searching
@@ -40,13 +41,20 @@ class DBHandler:
                 SELECT * FROM {table_name}
                 {check} {extra_query}
                 """, (value,))
-        return self._format_sql_data(table_name)
+        results = self._format_sql_data(table_name)
+        if all_results:
+            return results
+        else:
+            return results[0]
 
     def get_server_config(self, server_id: int):
         return self._search('server_config', 'server_id', server_id)
 
     def get_team_config(self, team_name: str):
         return self._search('teams', 'team_name', team_name, case_sensitive=False)
+
+    def get_teams(self, guild_id: int):
+        return self._search('teams', 'server_id', guild_id, all_results=True)
 
     def get_player_data(self, server_id: int, name: str, date=''):
         date_check = f"AND date = '{date}'" if date else ''
@@ -109,17 +117,17 @@ class DBHandler:
 
         return fields
 
-    def _format_sql_data(self, table_name: str):
+    def _format_sql_data(self, table_name: str) -> List[Dict] or List:
         data = self.cursor.fetchall()
         fields = self._get_table_fields(table_name)
 
         if not data:
-            return
+            return []
 
         if len(data) > 1:
             return [dictify(entry[1:], fields) for entry in data]
         else:
-            return dictify(data[0][1:], fields)
+            return [dictify(data[0][1:], fields)]
 
     def close(self):
         self.cursor.close()
