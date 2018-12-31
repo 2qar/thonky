@@ -13,7 +13,7 @@ def dictify(data, fields):
 
 def get_check(field_name: str, case_sensitive):
     """ Wrap the check in LOWER() if case_sensitive """
-    return f"WHERE {field_name} = %s" if case_sensitive else "WHERE LOWER({field_name}) = LOWER(%s)"
+    return f"WHERE {field_name} = %s" if case_sensitive else f"WHERE LOWER({field_name}) = LOWER(%s)"
 
 
 class DBHandler:
@@ -28,6 +28,14 @@ class DBHandler:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def _get_template_config(self) -> dict:
+        """ Template config for a guild or team """
+        template_config = self.get_server_config(0)
+        empty_keys = [key for key in template_config if not template_config[key]]
+        for key in empty_keys:
+            del(template_config[key])
+        return template_config
 
     def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query='',
                 all_results=False):
@@ -86,11 +94,7 @@ class DBHandler:
         self._update('server_config', 'server_id', server_id, key, value)
 
     def add_server_config(self, server_id: int):
-        template_config = self.get_server_config(0)
-        empty_keys = [key for key in template_config if not template_config[key]]
-        for key in empty_keys:
-            del(template_config[key])
-        self._add('server_config', server_id, template_config)
+        self._add('server_config', server_id, self._get_template_config())
 
     def get_team_config(self, team_name: str):
         return self._search('teams', 'team_name', team_name, case_sensitive=False)
@@ -100,10 +104,13 @@ class DBHandler:
 
     def update_team_config(self, guild_id: int, team_name: str, key: str, value: Any):
         extra_query = f"AND server_id = '{guild_id}'"
-        return self._update('teams', 'name', team_name, key, value, case_sensitive=True, extra_query=extra_query)
+        return self._update('teams', 'team_name', team_name, key, value, case_sensitive=True, extra_query=extra_query)
 
     def add_team_config(self, guild_id: int, team_name: str, channel: int):
-        self._add('teams', guild_id, {'name': team_name, 'channels': [channel]})
+        template_config = self._get_template_config()
+        template_config['team_name'] = team_name
+        template_config['channels'] = [channel]
+        self._add('teams', guild_id, template_config)
 
     def get_player_data(self, server_id: int, name: str, date=''):
         date_check = f"AND date = '{date}'" if date else ''
