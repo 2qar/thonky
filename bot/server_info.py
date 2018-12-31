@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from discord import NotFound
 from calendar import day_name as day_names
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -6,7 +7,7 @@ from .sheetbot import SheetHandler
 from .dbhandler import DBHandler
 
 
-class ServerInfo:
+class BaseInfo(ABC):
     def _init_sheet(self, doc_key: str):
         self.sheet_handler = SheetHandler(doc_key)
         self._init_sheet_attrs()
@@ -37,13 +38,21 @@ class ServerInfo:
 
         self.scanning = False
 
+    @abstractmethod
+    def get_id(self):
+        """ Get something to use as an ID for jobstores in PingScheduler """
+        pass
+
+    @abstractmethod
+    def get_config(self):
+        pass
+
     def get_ping_channel(self):
-        with DBHandler() as handler:
-            channel_id = handler.get_server_config(self.guild_id)['announce_channel']
-            try:
-                return self.bot.get_channel(channel_id)
-            except NotFound:
-                return None
+        channel_id = self.get_config()['announce_channel']
+        try:
+            return self.bot.get_channel(channel_id)
+        except NotFound:
+            return None
 
     def save_players(self):
         week = self.week_schedule[0].date.replace('/', '-')
@@ -90,12 +99,37 @@ class ServerInfo:
             self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
-        has_guild = self.bot.ping_scheduler.has_guild(self.guild_id)
-        if ping_channel and has_guild:
+        has_jobstores = self.bot.ping_scheduler.has_info_jobstores(self)
+        if ping_channel and has_jobstores:
             self.bot.ping_scheduler.init_schedule_pings(self.get_ping_channel(), self)
-        elif not has_guild:
+        elif not has_jobstores:
             self.bot.ping_scheduler.setup_guild(self)
 
         self.scanning = False
         self.sheet_handler.update_modified()
         await try_send("Finished updating. :)")
+
+
+class TeamInfo(BaseInfo):
+    def __init__(self, guild_id, config, bot):
+        super().__init__(guild_id, config, bot)
+
+    def get_id(self):
+        return self.config['team_name']
+
+    def get_config(self):
+        # with DBHandler() as handler:
+            # return handler.get_team(self.get_id())
+        pass
+
+
+class GuildInfo(BaseInfo):
+    def __init__(self, guild_id, config, bot):
+        super().__init__(guild_id, config, bot)
+
+    def get_id(self):
+        return self.guild_id
+
+    def get_config(self):
+        with DBHandler() as handler:
+            return handler.get_server_config(self.guild_id)

@@ -4,7 +4,7 @@ import importlib
 import os
 from typing import Union
 
-from .server_info import ServerInfo
+from .server_info import GuildInfo
 from .ping_scheduler import PingScheduler
 from .dbhandler import DBHandler
 
@@ -51,7 +51,7 @@ class Bot(DiscordBot):
         config = handler.get_server_config(guild_id)
 
         if config:
-            self.server_info[str(guild_id)] = ServerInfo(guild_id, config, self)
+            self.server_info[str(guild_id)] = GuildInfo(guild_id, config, self)
         else:
             handler.add_server_config(guild_id)
             self.create_guild_info(guild_id, handler)

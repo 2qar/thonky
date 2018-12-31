@@ -4,7 +4,7 @@ import calendar
 import json
 from typing import Callable
 
-from .server_info import ServerInfo
+from .server_info import BaseInfo
 from .formatter import get_formatter, Formatter
 from .dbhandler import DBHandler
 
@@ -22,22 +22,22 @@ class PingScheduler(AsyncIOScheduler):
             self.config = json.load(file)
         self.save_day_num = list(calendar.day_name).index(self.config['save_day'].title())
 
-    def has_guild(self, guild_id: int):
+    def has_info_jobstores(self, info: BaseInfo):
         try:
-            return bool(self._lookup_jobstore(f"{guild_id}_pings"))
+            return bool(self._lookup_jobstore(f"{info.get_id()}_pings"))
         except KeyError:
             return False
 
-    def setup_guild(self, server_info: ServerInfo):
-        for key, jobstore in server_info.jobstores.items():
-            self.add_jobstore(jobstore, alias=f"{server_info.guild_id}_{key}")
+    def setup_guild(self, info: BaseInfo):
+        for key, jobstore in info.jobstores.items():
+            self.add_jobstore(jobstore, alias=f"{info.get_id()}_{key}")
 
-        self.guild_id = server_info.guild_id
-        self.init_save_player_data(server_info)
-        self.init_auto_update(server_info)
-        channel = server_info.get_ping_channel()
+        self.guild_id = info.guild_id
+        self.init_save_player_data(info)
+        self.init_auto_update(info)
+        channel = info.get_ping_channel()
         if channel:
-            self.init_schedule_pings(channel, server_info)
+            self.init_schedule_pings(channel, info)
         self.print_jobs()
 
     def add_guild_job(self, func: Callable, run_date: datetime, jobstore: str, **kwargs):
@@ -92,15 +92,16 @@ class PingScheduler(AsyncIOScheduler):
 
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
         # ^ maybe only do this if pinging for every activity becomes a thing again
-    def init_schedule_pings(self, channel, server_info: ServerInfo):
+    def init_schedule_pings(self, channel, info: BaseInfo):
         with DBHandler() as handler:
-            config = handler.get_server_config(server_info.guild_id)
+            # TODO: Make handler.get_team_config() and use it here
+            config = handler.get_server_config(info.guild_id)
             role_mention = config['role_mention']
             remind_activities = [activity.lower() for activity in config['remind_activities']]
             remind_intervals = config['remind_intervals']
 
         today = datetime.date.today().weekday()
-        days = server_info.week_schedule.days
+        days = info.week_schedule.days
         start_date = days[0].as_date()
 
         for day_index, day in enumerate(days[today::]):
@@ -112,8 +113,8 @@ class PingScheduler(AsyncIOScheduler):
                 morning_runtime = datetime.datetime.combine(date, datetime.time(9))
                 morning_ping_id = day.name + "_morning_ping"
                 embed = get_formatter('PST').get_day_schedule(
-                    server_info.guild_id,
-                    server_info.players,
+                    info.guild_id,
+                    info.players,
                     day_index
                 )
                 self.add_guild_job(
