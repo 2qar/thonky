@@ -1,11 +1,6 @@
-from typing import Dict, Any, List
+from typing import Any, List
 import psycopg2
 import json
-
-
-def format_arrays(string):
-    """ Format arrays to be SQL friendly :) """
-    return string.replace('[', '{').replace(']', '}')
 
 
 def dictify(data, fields):
@@ -64,61 +59,59 @@ class DBHandler:
                 """, (update_value, check_value))
         self.conn.commit()
 
+    def _add(self, table_name: str, guild_id: int, given_values: dict):
+        """ Insert a new row with the given values. """
+
+        given_values['server_id'] = guild_id
+
+        def parenthesise(items: List[str]): return f"({', '.join(items)})"
+        fields = []
+        values = []
+        for key in given_values:
+            fields.append(key)
+            values.append(given_values[key])
+
+        formatted_fields = parenthesise([field for field in given_values])
+        tuple_values = tuple(value for value in values)
+
+        value_blanks = parenthesise(['%s' for key in values])
+
+        self.cursor.execute(f"INSERT INTO {table_name} {formatted_fields} VALUES {value_blanks}", tuple_values)
+        self.conn.commit()
+
     def get_server_config(self, server_id: int):
         return self._search('server_config', 'server_id', server_id)
 
     def update_server_config(self, server_id: int, key: str, value: Any):
         self._update('server_config', 'server_id', server_id, key, value)
 
+    def add_server_config(self, server_id: int):
+        template_config = self.get_server_config(0)
+        empty_keys = [key for key in template_config if not template_config[key]]
+        for key in empty_keys:
+            del(template_config[key])
+        self._add('server_config', server_id, template_config)
+
     def get_team_config(self, team_name: str):
         return self._search('teams', 'team_name', team_name, case_sensitive=False)
+
+    def get_teams(self, guild_id: int):
+        return self._search('teams', 'server_id', guild_id, all_results=True)
 
     def update_team_config(self, guild_id: int, team_name: str, key: str, value: Any):
         extra_query = f"AND server_id = '{guild_id}'"
         return self._update('teams', 'name', team_name, key, value, case_sensitive=True, extra_query=extra_query)
 
-    def get_teams(self, guild_id: int):
-        return self._search('teams', 'server_id', guild_id, all_results=True)
+    def add_team_config(self, guild_id: int, team_name: str, channel: int):
+        self._add('teams', guild_id, {'name': team_name, 'channels': [channel]})
 
     def get_player_data(self, server_id: int, name: str, date=''):
         date_check = f"AND date = '{date}'" if date else ''
         extra_query = f"AND server_id = {server_id} {date_check}"
         return self._search('player_data', 'name', name, case_sensitive=False, extra_query=extra_query)
 
-    def add_server_config(self, server_id: int):
-        with open('config_base.json') as base:
-            config_base = json.load(base)
-
-        formatted_config_base = f"'{server_id}', "
-
-        def format_item(key):
-            value = str(config_base[key[0]])
-            value = value.replace("'", '"')
-            value = f"'{value}'"
-            if value != "''":
-                return value
-            else:
-                return 'NULL'
-
-        formatted_config_base += ', '.join([format_item(key) for key in sorted(config_base.items())])
-        formatted_config_base = format_arrays(formatted_config_base)
-
-        query = f"""
-                INSERT INTO server_config
-                VALUES ({formatted_config_base})
-                """
-        self.cursor.execute(query)
-        self.conn.commit()
-
-    def add_player_data(self, server_id: int, name: str, date: str, availability: Dict):
-        friendly_availability = str(availability).replace("'", '"')
-        query = f"""
-                INSERT INTO player_data (server_id, name, date, availability)
-                VALUES ('{server_id}', '{name}', '{date}', '{friendly_availability}')
-                """
-
-        self.cursor.execute(query)
-        self.conn.commit()
+    def add_player_data(self, server_id: int, name: str, date: str, availability: dict):
+        self._add('player_data', server_id, {'name': name, 'date': date, 'availability': availability})
 
     def _get_table_fields(self, table_name: str):
         self.cursor.execute(f"""
@@ -131,7 +124,7 @@ class DBHandler:
 
         return fields
 
-    def _format_sql_data(self, table_name: str) -> List[Dict] or List:
+    def _format_sql_data(self, table_name: str) -> List[dict] or List:
         data = self.cursor.fetchall()
         fields = self._get_table_fields(table_name)
 
