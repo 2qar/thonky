@@ -1,4 +1,4 @@
-import typing
+from typing import Dict, Any
 import psycopg2
 import json
 
@@ -29,24 +29,29 @@ class DBHandler:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def _get_table_fields(self, table_name: str):
+    def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query=''):
+        """ Get row(s) from a table where a given field matches a given value.
+
+            :param str extra_query: extra checks for searching
+        """
+
+        check = f"WHERE {field_name} = %s" if case_sensitive else f"WHERE LOWER({field_name}) = LOWER(%s)"
         self.cursor.execute(f"""
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name='{table_name}'""")
-        fields = [field[0] for field in self.cursor.fetchall()]
-
-        if 'server_id' in fields:
-            fields = fields[1:]
-
-        return fields
+                SELECT * FROM {table_name}
+                {check} {extra_query}
+                """, (value,))
+        return self._format_sql_data(table_name)
 
     def get_server_config(self, server_id: int):
-        self.cursor.execute("""
-                SELECT * FROM server_config 
-                WHERE server_id = %s
-                """, (server_id,))
+        return self._search('server_config', 'server_id', server_id)
 
-        return self._format_sql_data('server_config')
+    def get_team_config(self, team_name: str):
+        return self._search('teams', 'team_name', team_name, case_sensitive=False)
+
+    def get_player_data(self, server_id: int, name: str, date=''):
+        date_check = f"AND date = '{date}'" if date else ''
+        extra_query = f"AND server_id = {server_id} {date_check}"
+        return self._search('player_data', 'name', name, case_sensitive=False, extra_query=extra_query)
 
     def add_server_config(self, server_id: int):
         with open('config_base.json') as base:
@@ -83,17 +88,7 @@ class DBHandler:
         self.cursor.execute(query)
         self.conn.commit()
 
-    def get_player_data(self, server_id: int, name: str, date: typing.Optional[str]=None):
-        date_str = f"AND date = '{date}'" if date else ''
-        self.cursor.execute(f"""
-                SELECT * FROM player_data
-                WHERE server_id = %s AND
-                LOWER(name) = LOWER(%s) {date_str}
-                """, (server_id, name))
-
-        return self._format_sql_data('player_data')
-
-    def add_player_data(self, server_id: int, name: str, date: str, availability: typing.Dict):
+    def add_player_data(self, server_id: int, name: str, date: str, availability: Dict):
         friendly_availability = str(availability).replace("'", '"')
         query = f"""
                 INSERT INTO player_data (server_id, name, date, availability)
@@ -102,6 +97,17 @@ class DBHandler:
 
         self.cursor.execute(query)
         self.conn.commit()
+
+    def _get_table_fields(self, table_name: str):
+        self.cursor.execute(f"""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name='{table_name}'""")
+        fields = [field[0] for field in self.cursor.fetchall()]
+
+        if 'server_id' in fields:
+            fields = fields[1:]
+
+        return fields
 
     def _format_sql_data(self, table_name: str):
         data = self.cursor.fetchall()
