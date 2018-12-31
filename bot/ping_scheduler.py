@@ -6,7 +6,6 @@ from typing import Callable
 
 from .server_info import BaseInfo
 from .formatter import get_formatter, Formatter
-from .dbhandler import DBHandler
 
 
 # TODO: Eventually rewrite the whole jobstore thing
@@ -93,12 +92,10 @@ class PingScheduler(AsyncIOScheduler):
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
         # ^ maybe only do this if pinging for every activity becomes a thing again
     def init_schedule_pings(self, channel, info: BaseInfo):
-        with DBHandler() as handler:
-            # TODO: Make handler.get_team_config() and use it here
-            config = handler.get_server_config(info.guild_id)
-            role_mention = config['role_mention']
-            remind_activities = [activity.lower() for activity in config['remind_activities']]
-            remind_intervals = config['remind_intervals']
+        config = info.get_config()
+        role_mention = config['role_mention']
+        remind_activities = [activity.lower() for activity in config['remind_activities']]
+        remind_intervals = config['remind_intervals']
 
         today = datetime.date.today().weekday()
         days = info.week_schedule.days
