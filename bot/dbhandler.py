@@ -29,7 +29,7 @@ class DBHandler:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def get_table_fields(self, table_name: str):
+    def _get_table_fields(self, table_name: str):
         self.cursor.execute(f"""
                 SELECT column_name FROM information_schema.columns
                 WHERE table_name='{table_name}'""")
@@ -46,7 +46,7 @@ class DBHandler:
                 WHERE server_id = %s
                 """, (server_id,))
 
-        return self.format_sql_data('server_config')
+        return self._format_sql_data('server_config')
 
     def add_server_config(self, server_id: int):
         with open('config_base.json') as base:
@@ -91,7 +91,7 @@ class DBHandler:
                 LOWER(name) = LOWER(%s) {date_str}
                 """, (server_id, name))
 
-        return self.format_sql_data('player_data')
+        return self._format_sql_data('player_data')
 
     def add_player_data(self, server_id: int, name: str, date: str, availability: typing.Dict):
         friendly_availability = str(availability).replace("'", '"')
@@ -103,9 +103,9 @@ class DBHandler:
         self.cursor.execute(query)
         self.conn.commit()
 
-    def format_sql_data(self, table_name: str):
+    def _format_sql_data(self, table_name: str):
         data = self.cursor.fetchall()
-        fields = self.get_table_fields(table_name)
+        fields = self._get_table_fields(table_name)
 
         if not data:
             return
