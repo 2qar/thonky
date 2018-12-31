@@ -120,6 +120,9 @@ class TeamInfo(BaseInfo):
         with DBHandler() as handler:
             return handler.get_team_config(self.get_id())
 
+    def has_channel(self, channel_id: int):
+        return channel_id in self.get_config()['channels']
+
 
 class GuildInfo(BaseInfo):
     def __init__(self, guild_id, config, bot):
@@ -135,3 +138,8 @@ class GuildInfo(BaseInfo):
     def get_config(self):
         with DBHandler() as handler:
             return handler.get_server_config(self.guild_id)
+
+    def get_team_in_channel(self, channel_id: int) -> TeamInfo or None:
+        for team in self._teams:
+            if team.has_channel(channel_id):
+                return team

@@ -1,10 +1,10 @@
-from discord.ext.commands import Bot as DiscordBot
+from discord.ext.commands import Context, Bot as DiscordBot
 from discord import Game
 import importlib
 import os
-from typing import Union
+from typing import Union, Dict
 
-from .server_info import GuildInfo
+from .server_info import GuildInfo, TeamInfo
 from .ping_scheduler import PingScheduler
 from .dbhandler import DBHandler
 
@@ -15,7 +15,7 @@ from .dbhandler import DBHandler
 class Bot(DiscordBot):
     def __init__(self, token):
         super().__init__('!')
-        self.server_info = {}
+        self.server_info: Dict[str, GuildInfo] = {}
         self.ping_scheduler = PingScheduler()
         self.run(token)
 
@@ -55,3 +55,11 @@ class Bot(DiscordBot):
         else:
             handler.add_server_config(guild_id)
             self.create_guild_info(guild_id, handler)
+
+    def get_info(self, ctx: Context) -> GuildInfo or TeamInfo:
+        guild_info = self.server_info[str(ctx.guild.id)]
+        team_info = guild_info.get_team_in_channel(ctx.channel.id)
+        if team_info:
+            return team_info
+        else:
+            return guild_info
