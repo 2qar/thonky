@@ -84,11 +84,10 @@ class BaseInfo(ABC):
         else:
             await try_send("Updating...")
 
-        with DBHandler() as handler:
-            doc_key = handler.get_server_config(self.guild_id)['doc_key']
-            if not doc_key:
-                await try_send('No spreadsheet given for this server :(')
-                return
+        doc_key = self.get_config()['doc_key']
+        if not doc_key:
+            await try_send('No spreadsheet given for this server :(')
+            return
 
         self.scanning = True
 
