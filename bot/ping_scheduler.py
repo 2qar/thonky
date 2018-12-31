@@ -84,7 +84,6 @@ class PingScheduler(AsyncIOScheduler):
                 run_time,
                 "pings",
                 name=item,
-                run_date=run_time,
                 args=[message],
                 id=ping_id,
                 replace_existing=True
