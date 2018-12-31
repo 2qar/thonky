@@ -1,19 +1,14 @@
 import aiohttp
-from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import command, Context
 from discord import Embed, Color
 import re
+from typing import Any, List
 
+from ...server_info import GuildInfo, TeamInfo
 from ...dbhandler import DBHandler
 from ...formatter import thonk_link, sheet_url
 
 base_sheet_url = 'https://docs.google.com/spreadsheets/d/'
-
-
-def write_property(server_id, key, value):
-    """ Update a single property of a server's config """
-    with DBHandler() as handler:
-        handler.update_server_config(server_id, key, value)
 
 
 def get_last_link_element(link: str) -> str:
@@ -36,7 +31,16 @@ class Config:
         if type(ctx.cog) == type(self):
             await ctx.send(exception)
 
-    @commands.command(pass_context=True)
+    def write_property(self, ctx: Context, key: str, value: Any):
+        """ Update a single property of a server's config """
+        info = self.bot.get_info(ctx)
+        with DBHandler() as handler:
+            if isinstance(info, GuildInfo):
+                handler.update_server_config(ctx.guild.id, key, value)
+            elif isinstance(info, TeamInfo):
+                handler.update_team_config(ctx.guild.id, info.team_name, key, value)
+
+    @command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
         """ Sets the sheet to grab schedule info from.
 
@@ -52,12 +56,12 @@ class Config:
             doc_key = url[len(base_sheet_url):]
             doc_key = doc_key[:doc_key.find('/')]
 
-            write_property(ctx.guild.id, 'doc_key', doc_key)
+            self.write_property(ctx, 'doc_key', doc_key)
 
-            server_info = self.bot.server_info[str(ctx.guild.id)]
-            await server_info.update(channel=ctx.channel)
+            info = self.bot.get_info(ctx)
+            await info.update(channel=ctx.channel)
 
-    @commands.command(pass_context=True)
+    @command(pass_context=True)
     async def set_channel(self, ctx: Context, channel: str):
         """ Sets the channel to send reminder messages in. """
 
@@ -70,12 +74,12 @@ class Config:
                 if not channel_obj.permissions_for(ctx.guild.me).send_messages:
                     await ctx.send("I can't send messages in that channel. :(")
                 else:
-                    write_property(ctx.guild.id, 'announce_channel', channel_id)
+                    self.write_property(ctx, 'announce_channel', channel_id)
                     await ctx.send("Channel set. :)")
             else:
                 await ctx.send("I can't see that channel. :(")
 
-    @commands.command(pass_context=True)
+    @command(pass_context=True)
     async def set_role(self, ctx: Context, role_mention: str):
         """ Sets the role to ping in reminder messages.
 
@@ -88,7 +92,7 @@ class Config:
         """
 
         async def write_role(mention: str):
-            write_property(ctx.guild.id, 'role_mention', mention)
+            self.write_property(ctx, 'role_mention', mention)
             await ctx.send("Role set. :)")
 
         if re.match('<@&\d{18}>', role_mention):
@@ -100,7 +104,7 @@ class Config:
                     return
             await ctx.send(f"Invalid role \"{role_mention}\". :(")
 
-    @commands.command(pass_context=True)
+    @command(pass_context=True)
     async def set_team(self, ctx: Context, team_url: str):
         """ Sets the team on Battlefy to look for in matches. """
 
@@ -114,7 +118,7 @@ class Config:
                 handler.update_server_config(ctx.guild.id, 'team_id', team_id)
             await ctx.send("Team set. :)")
 
-    @commands.command(pass_context=True, name='set_tourney')
+    @command(pass_context=True, name='set_tourney')
     async def set_tournament(self, ctx: Context, tournament_url: str):
         """ Sets the tournament stage ID for grabbing match info..
 
@@ -133,7 +137,7 @@ class Config:
                 handler.update_server_config(ctx.guild.id, 'stage_id', stage_id)
             await ctx.send("Tournament set. :)")
 
-    @commands.command(pass_context=True)
+    @command(pass_context=True)
     async def set_update(self, ctx: Context, update_interval: str):
         """ Set the sheet update interval (in minutes). """
         try:
@@ -146,21 +150,24 @@ class Config:
         if interval < limit:
             await ctx.send(f"Less than {limit} minutes is too quick. :(")
         else:
-            write_property(ctx.guild.id, 'update_interval', interval)
+            self.write_property(ctx, 'update_interval', interval)
             await ctx.send("Update interval set. :)")
 
-    @commands.command(pass_context=True)
+    @command(pass_context=True)
     async def show_config(self, ctx: Context):
         embed = Embed(colour=Color.blue())
         embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
 
-        with DBHandler() as handler:
-            config = handler.get_server_config(ctx.guild.id)
+        info = self.bot.get_info(ctx)
+        config = info.get_config()
 
         def add_field(name: str, value: str):
             if value is None:
                 value = "None"
             embed.add_field(name=name, value=value, inline=False)
+
+        if isinstance(info, TeamInfo):
+            add_field("Team", info.team_name)
 
         if config['doc_key']:
             current_sheet = f"{sheet_url}{config['doc_key']}"
@@ -176,8 +183,12 @@ class Config:
 
         add_field("Reminder Channel", channel_mention)
         add_field("Reminder Ping", config['role_mention'])
-        add_field("Reminder Activities", ', '.join(config['remind_activities']))
-        add_field("Intervals", ', '.join([str(item) for item in config['remind_intervals']]))
+
+        def add_list_field(name: str, values: List[str]):
+            value = ', '.join([str(item) for item in values]) if values else None
+            add_field(name, value)
+        add_list_field("Reminder Activities", config['remind_activities'])
+        add_list_field("Intervals", config['remind_intervals'])
         add_field("Sheet Update Interval", config['update_interval'])
 
         session = aiohttp.ClientSession()

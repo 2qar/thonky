@@ -123,6 +123,10 @@ class TeamInfo(BaseInfo):
     def has_channel(self, channel_id: int):
         return channel_id in self.get_config()['channels']
 
+    @property
+    def team_name(self):
+        return self.config['team_name']
+
 
 class GuildInfo(BaseInfo):
     def __init__(self, guild_id, config, bot):
