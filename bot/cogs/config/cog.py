@@ -1,5 +1,5 @@
 import aiohttp
-from discord.ext.commands import command, Context, TextChannelConverter
+from discord.ext.commands import command, Context, Greedy, TextChannelConverter
 from discord import Embed, Color
 import re
 from typing import Any, List
@@ -57,6 +57,57 @@ class Config:
                 config = handler.get_team_config(ctx.guild.id, team_name)
                 guild_info.add_team(config)
                 await ctx.send("Team added. :)")
+
+    @command(pass_context=True, aliases=['add_channel'])
+    async def add_channels(self, ctx: Context, channels: Greedy[TextChannelConverter]):
+        """ Add channels to a team.
+
+            Give at least one channel mention, ex:
+                !add_team "Example Team" #general #announcements
+        """
+
+        info = self.bot.get_info(ctx)
+        if isinstance(info, GuildInfo):
+            await ctx.send("No team in this channel.")
+        else:
+            with DBHandler() as handler:
+                current_channels = handler.get_team_config(ctx.guild.id, info.team_name)['channels']
+
+                def delete_channel_with_id(channel_id: int):
+                    for i in range(len(channels)):
+                        if channels[i].id == channel_id:
+                            del(channels[i])
+                            i -= 1
+
+                for _id in current_channels:
+                    delete_channel_with_id(_id)
+
+                if channels:
+                    handler.update_team_config(ctx.guild.id, info.team_name, 'channels',
+                                               current_channels + [channel.id for channel in channels])
+                    added_channels = ', '.join([channel.mention for channel in channels])
+                    await ctx.send(f"Added {added_channels}. :)")
+                else:
+                    await ctx.send("Channels already added.")
+
+    @command(pass_context=True, aliases=['remove_channel'])
+    async def remove_channels(self, ctx: Context, channels: Greedy[TextChannelConverter]):
+        info = self.bot.get_info(ctx)
+        if isinstance(info, GuildInfo):
+            await ctx.send("No team in this channel.")
+        else:
+            with DBHandler() as handler:
+                current_channels = handler.get_team_config(ctx.guild.id, info.team_name)['channels']
+                if len(current_channels) == len(channels):
+                    await ctx.send("Can't remove all channels from a team.")
+                else:
+                    deleted = []
+                    for channel in channels:
+                        if channel.id in current_channels:
+                            deleted.append(channel)
+                            del(current_channels[current_channels.index(channel.id)])
+                    deleted_str = ', '.join([channel.mention for channel in deleted])
+                    await ctx.send(f"Removed {deleted_str}. :)")
 
     @command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
@@ -182,8 +233,14 @@ class Config:
                 value = "None"
             embed.add_field(name=name, value=value, inline=False)
 
+        def add_list_field(name: str, values: List[str]):
+            value = ', '.join([str(item) for item in values]) if values else None
+            add_field(name, value)
+
         if isinstance(info, TeamInfo):
             add_field("Team", info.team_name)
+            channels = [self.bot.get_channel(_id).mention for _id in config['channels']]
+            add_list_field("Channels", channels)
 
         if config['doc_key']:
             current_sheet = f"{sheet_url}{config['doc_key']}"
@@ -199,10 +256,6 @@ class Config:
 
         add_field("Reminder Channel", channel_mention)
         add_field("Reminder Ping", config['role_mention'])
-
-        def add_list_field(name: str, values: List[str]):
-            value = ', '.join([str(item) for item in values]) if values else None
-            add_field(name, value)
         add_list_field("Reminder Activities", config['remind_activities'])
         add_list_field("Intervals", config['remind_intervals'])
         add_field("Sheet Update Interval", config['update_interval'])
