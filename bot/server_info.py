@@ -19,6 +19,7 @@ class BaseInfo(ABC):
 
     def __init__(self, guild_id, config, bot):
         self.guild_id = guild_id
+        # TODO: update config locally instead of pulling it all the time
         self.config = config
         self.bot = bot
 
@@ -114,14 +115,14 @@ class TeamInfo(BaseInfo):
         super().__init__(guild_id, config, bot)
 
     def get_id(self):
-        return self.config['team_name'].lower()
+        return self.team_name.lower()
 
     def get_config(self):
         with DBHandler() as handler:
-            return handler.get_team_config(self.get_id())
+            return handler.get_team_config(self.guild_id, self.team_name)
 
     def has_channel(self, channel_id: int):
-        return channel_id in self.get_config()['channels']
+        return channel_id in [int(channel) for channel in self.get_config()['channels']]
 
     @property
     def team_name(self):
@@ -147,3 +148,6 @@ class GuildInfo(BaseInfo):
         for team in self._teams:
             if team.has_channel(channel_id):
                 return team
+
+    def add_team(self, config: dict):
+        self._teams.append(TeamInfo(self.guild_id, config, self.bot))

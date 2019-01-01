@@ -1,5 +1,5 @@
 import aiohttp
-from discord.ext.commands import command, Context
+from discord.ext.commands import command, Context, TextChannelConverter
 from discord import Embed, Color
 import re
 from typing import Any, List
@@ -39,6 +39,24 @@ class Config:
                 handler.update_server_config(ctx.guild.id, key, value)
             elif isinstance(info, TeamInfo):
                 handler.update_team_config(ctx.guild.id, info.team_name, key, value)
+
+    @command(pass_context=True)
+    async def add_team(self, ctx: Context, team_name: str, channel: TextChannelConverter):
+        """ Add a team to this server. """
+
+        guild_info = self.bot.server_info[str(ctx.guild.id)]
+        team = guild_info.get_team_in_channel(channel.id)
+        with DBHandler() as handler:
+            if handler.get_team_config(ctx.guild.id, team_name):
+                await ctx.send("Team already exists.")
+            elif team:
+                await ctx.send(f"Channel already occupied by {team.team_name}.")
+            else:
+                # TODO: Make add_team_config return full config
+                handler.add_team_config(ctx.guild.id, team_name, channel.id)
+                config = handler.get_team_config(ctx.guild.id, team_name)
+                guild_info.add_team(config)
+                await ctx.send("Team added. :)")
 
     @command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):

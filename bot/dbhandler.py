@@ -16,6 +16,10 @@ def get_check(field_name: str, case_sensitive):
     return f"WHERE {field_name} = %s" if case_sensitive else f"WHERE LOWER({field_name}) = LOWER(%s)"
 
 
+def server_id_check(guild_id: int) -> str:
+    return f"AND server_id = '{guild_id}'"
+
+
 class DBHandler:
     def __init__(self):
         with open('config.json') as config_file:
@@ -38,7 +42,7 @@ class DBHandler:
         return template_config
 
     def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query='',
-                all_results=False):
+                all_results=False) -> dict or None:
         """ Get row(s) from a table where a given field matches a given value.
 
             :param str extra_query: extra checks for searching
@@ -50,10 +54,12 @@ class DBHandler:
                 {check} {extra_query}
                 """, (value,))
         results = self._format_sql_data(table_name)
-        if all_results:
-            return results
-        else:
-            return results[0]
+        if results:
+            if all_results:
+                return results
+            else:
+                return results[0]
+        return results
 
     def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
                 case_sensitive=True, extra_query=''):
@@ -96,15 +102,16 @@ class DBHandler:
     def add_server_config(self, server_id: int):
         self._add('server_config', server_id, self._get_template_config())
 
-    def get_team_config(self, team_name: str):
-        return self._search('teams', 'team_name', team_name, case_sensitive=False)
+    def get_team_config(self, guild_id: int, team_name: str):
+        return self._search('teams', 'team_name', team_name, case_sensitive=False,
+                            extra_query=server_id_check(guild_id))
 
     def get_teams(self, guild_id: int):
         return self._search('teams', 'server_id', guild_id, all_results=True)
 
     def update_team_config(self, guild_id: int, team_name: str, key: str, value: Any):
-        extra_query = f"AND server_id = '{guild_id}'"
-        return self._update('teams', 'team_name', team_name, key, value, case_sensitive=True, extra_query=extra_query)
+        return self._update('teams', 'team_name', team_name, key, value, case_sensitive=True,
+                            extra_query=server_id_check(guild_id))
 
     def add_team_config(self, guild_id: int, team_name: str, channel: int):
         template_config = self._get_template_config()
@@ -114,7 +121,7 @@ class DBHandler:
 
     def get_player_data(self, server_id: int, name: str, date=''):
         date_check = f"AND date = '{date}'" if date else ''
-        extra_query = f"AND server_id = {server_id} {date_check}"
+        extra_query = f"{server_id_check(server_id)} {date_check}"
         return self._search('player_data', 'name', name, case_sensitive=False, extra_query=extra_query)
 
     def add_player_data(self, server_id: int, name: str, date: str, availability: dict):
