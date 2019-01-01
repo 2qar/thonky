@@ -52,9 +52,7 @@ class Config:
         if not re.match(sheet_re, url):
             await ctx.send("Invalid spreadsheet url.")
         else:
-            # cut the stuff surrounding the key
-            doc_key = url[len(base_sheet_url):]
-            doc_key = doc_key[:doc_key.find('/')]
+            doc_key = re.search("[\d\w-]{44}", url).group(0)
 
             self.write_property(ctx, 'doc_key', doc_key)
 
