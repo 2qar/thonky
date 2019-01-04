@@ -74,11 +74,6 @@ class BaseInfo(ABC):
             if channel:
                 await channel.send(msg)
 
-        if self.sheet_handler is not None:
-            if self.sheet_handler.updated:
-                await try_send("Nothing to update.")
-                return
-
         if self.scanning:
             await try_send("Already updating.")
             return
@@ -89,6 +84,10 @@ class BaseInfo(ABC):
         if not doc_key:
             await try_send('No spreadsheet given for this server :(')
             return
+        elif self.sheet_handler:
+            if doc_key == self.sheet_handler.doc_key and self.sheet_handler.updated:
+                await try_send("Nothing to update.")
+                return
 
         self.scanning = True
 
