@@ -83,7 +83,11 @@ class DBHandler:
         values = []
         for key in given_values:
             fields.append(key)
-            values.append(given_values[key])
+            value = given_values[key]
+            if isinstance(value, dict):
+                values.append(str(value).replace("'", '"'))
+            else:
+                values.append(value)
 
         formatted_fields = parenthesise([field for field in given_values])
         tuple_values = tuple(value for value in values)
