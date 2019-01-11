@@ -64,6 +64,9 @@ class SheetInfo:
             except ValueError:
                 pass
 
+    def _get_formatter(self, ctx: Context, tz: str):
+        return get_formatter(self.bot, ctx, tz)
+
     @command(pass_context=True)
     @if_doc_key()
     async def avg(self, ctx, player_name: str):
@@ -76,7 +79,7 @@ class SheetInfo:
 
         player = self.get_player_by_name(ctx, player_name)
         if player:
-            avgs = get_formatter("PST").get_player_averages(ctx.guild.id, player.name)
+            avgs = self._get_formatter(ctx, "PST").get_player_averages(ctx.guild.id, player.name)
             if avgs:
                 await ctx.send(embed=avgs)
             else:
@@ -110,7 +113,7 @@ class SheetInfo:
         guild_id = ctx.guild.id
         player = self.get_player_by_name(ctx, player_name)
         if player:
-            formatter = get_formatter(tz)
+            formatter = self._get_formatter(ctx, tz)
             if formatter:
                 if time:
                     msg = formatter.get_player_at_time(player, day_int, time)
@@ -159,9 +162,9 @@ class SheetInfo:
             return
 
         day = datetime.datetime.today().weekday()
-        formatter = get_formatter(split[-1])
+        formatter = self._get_formatter(ctx, split[-1])
         if not formatter:
-            formatter = get_formatter('PST')
+            formatter = self._get_formatter(ctx, 'PST')
         else:
             del split[-1]
         guild_id = ctx.guild.id
@@ -191,17 +194,17 @@ class SheetInfo:
 
             embed = None
             if player:
-                embed = formatter.get_player_this_week(guild_id, player, info.week_schedule)
+                embed = formatter.get_player_this_week(player, info.week_schedule)
             elif is_hour(arg):
-                embed = formatter.get_hour_schedule(guild_id, info, day, arg)
+                embed = formatter.get_hour_schedule(info, day, arg)
             elif arg in ['today', 'tomorrow']:
-                embed = formatter.get_day_schedule(guild_id, info.players, day)
+                embed = formatter.get_day_schedule(info.players, day)
             elif arg == 'week':
-                embed = formatter.get_week_activity_schedule(self.bot, guild_id, info.week_schedule)
+                embed = formatter.get_week_activity_schedule(info.week_schedule)
             else:
                 day_int = SheetInfo.get_day_int(arg)
                 if day_int is not None:
-                    embed = formatter.get_day_schedule(guild_id, info.players, day_int)
+                    embed = formatter.get_day_schedule(info.players, day_int)
                 else:
                     await ctx.send("Invalid day.")
                     return
@@ -217,7 +220,7 @@ class SheetInfo:
             player = self.get_player_by_name(ctx, player_name)
             if player:
                 if target in ['today', 'tomorrow']:
-                    await send_embed(formatter.get_player_on_day(guild_id, player, day))
+                    await send_embed(formatter.get_player_on_day(player, day))
                 elif target in ['avg', 'average']:
                     await self.avg(ctx, player_name)
             elif player_name == 'od':
@@ -243,13 +246,13 @@ class SheetInfo:
                     if target_day is None:
                         await ctx.send("Invalid day.")
                     else:
-                        await send_embed(formatter.get_hour_schedule(guild_id, info, target_day, given_day))
+                        await send_embed(formatter.get_hour_schedule(info, target_day, given_day))
             elif decider == 'on':
                 day = self.get_day_int(given_day)
                 if day is None:
                     await ctx.send("Invalid day.")
                 else:
-                    await send_embed(formatter.get_player_on_day(guild_id, player, day))
+                    await send_embed(formatter.get_player_on_day(player, day))
             else:
                 await ctx.send("Invalid identifier.")
         elif arg_count == 5:
