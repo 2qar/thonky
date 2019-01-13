@@ -44,27 +44,24 @@ class PingScheduler(AsyncIOScheduler):
 
     def init_save_player_data(self, server_info, save_day=None):
         save_time = self.config['save_time']
+        today = datetime.datetime.today()
 
         # gets save day first time this method is called or gets next save day from previous save day given
         if save_day is None:
-            today = datetime.date.today()
-            monday = today - datetime.timedelta(days=today.weekday())
+            monday = today.date() - datetime.timedelta(days=today.weekday())
             save_day = monday + datetime.timedelta(days=self.save_day_num)
         else:
-            save_day += datetime.timedelta(days=self.save_day_num + 1)
+            save_day += datetime.timedelta(days=7)
 
-        today = datetime.datetime.today()
-        automated_save_missed = today.weekday() == self.save_day_num and today.hour >= save_time
-        save_time_as_date = datetime.time(save_time)
-        if automated_save_missed:
+        if today.weekday() > self.save_day_num or \
+                today.weekday() == self.save_day_num and today.time().hour >= save_time:
+            save_day += datetime.timedelta(days=7)
             server_info.save_players()
-            next_save_day = today + datetime.timedelta(days=self.save_day_num)
-            run_time = datetime.datetime.combine(next_save_day.date(), save_time_as_date)
-        else:
-            run_time = datetime.datetime.combine(save_day, save_time_as_date)
+        run_time = datetime.datetime.combine(save_day, datetime.time(save_time))
 
         self.add_guild_job(server_info.save_players, run_time, "maintenance")
-        self.add_guild_job(self.init_save_player_data, run_time, "maintenance", args=[save_day])
+        self.add_guild_job(self.init_save_player_data, run_time, "maintenance",
+                           args=[server_info], kwargs={'save_day': run_time.date()})
 
     def init_auto_update(self, server_info):
         update_interval = self.config['update_interval']
