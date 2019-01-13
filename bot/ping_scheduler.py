@@ -1,4 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 import datetime
 import calendar
 import json
@@ -20,6 +21,7 @@ class PingScheduler(AsyncIOScheduler):
         with open('config.json') as file:
             self.config = json.load(file)
         self.save_day_num = list(calendar.day_name).index(self.config['save_day'].title())
+        self.save_time = self.config['save_time']
 
     def has_info_jobstores(self, info: BaseInfo):
         try:
@@ -32,7 +34,7 @@ class PingScheduler(AsyncIOScheduler):
             self.add_jobstore(jobstore, alias=f"{info.get_id()}_{key}")
 
         self.info = info
-        self.init_save_player_data(info)
+        self.init_save_player_data()
         self.init_auto_update(info)
         channel = info.get_ping_channel()
         if channel:
@@ -42,26 +44,15 @@ class PingScheduler(AsyncIOScheduler):
     def add_guild_job(self, func: Callable, run_date: datetime, jobstore: str, **kwargs):
         self.add_job(func, 'date', run_date=run_date, jobstore=f"{self.info.get_id()}_{jobstore}", **kwargs)
 
-    def init_save_player_data(self, server_info, save_day=None):
-        save_time = self.config['save_time']
+    def init_save_player_data(self):
         today = datetime.datetime.today()
-
-        # gets save day first time this method is called or gets next save day from previous save day given
-        if save_day is None:
-            monday = today.date() - datetime.timedelta(days=today.weekday())
-            save_day = monday + datetime.timedelta(days=self.save_day_num)
-        else:
-            save_day += datetime.timedelta(days=7)
-
         if today.weekday() > self.save_day_num or \
-                today.weekday() == self.save_day_num and today.time().hour >= save_time:
-            save_day += datetime.timedelta(days=7)
-            server_info.save_players()
-        run_time = datetime.datetime.combine(save_day, datetime.time(save_time))
+                today.weekday() == self.save_day_num and today.time().hour >= self.save_time:
+            self.info.save_players()
 
-        self.add_guild_job(server_info.save_players, run_time, "maintenance")
-        self.add_guild_job(self.init_save_player_data, run_time, "maintenance",
-                           args=[server_info], kwargs={'save_day': run_time.date()})
+        self.add_job(self.info.save_players,
+                     trigger=CronTrigger(day_of_week=self.save_day_num, hour=self.save_time),
+                     jobstore=f"{self.info.get_id()}_maintenance")
 
     def init_auto_update(self, server_info):
         update_interval = self.config['update_interval']
