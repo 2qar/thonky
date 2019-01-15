@@ -39,6 +39,10 @@ class BaseInfo(ABC):
 
         self.scanning = False
 
+    @property
+    def sheet_link(self):
+        return f"https://docs.google.com/spreadsheets/d/{self.get_config()['doc_key']}"
+
     @abstractmethod
     def get_id(self):
         """ Get something to use as an ID for jobstores in PingScheduler """

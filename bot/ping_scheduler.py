@@ -97,8 +97,7 @@ class PingScheduler(AsyncIOScheduler):
                 # post the schedule at 9 AM
                 morning_runtime = datetime.datetime.combine(date, datetime.time(9))
                 morning_ping_id = day.name + "_morning_ping"
-                embed = get_formatter('PST').get_day_schedule(
-                    info.guild_id,
+                embed = get_formatter(info, 'PST').get_day_schedule(
                     info.players,
                     day_index
                 )

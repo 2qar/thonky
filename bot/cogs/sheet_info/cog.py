@@ -64,9 +64,6 @@ class SheetInfo:
             except ValueError:
                 pass
 
-    def _get_formatter(self, ctx: Context, tz: str):
-        return get_formatter(self.bot, ctx, tz)
-
     @command(pass_context=True)
     @if_doc_key()
     async def avg(self, ctx, player_name: str):
@@ -79,7 +76,7 @@ class SheetInfo:
 
         player = self.get_player_by_name(ctx, player_name)
         if player:
-            avgs = self._get_formatter(ctx, "PST").get_player_averages(ctx.guild.id, player.name)
+            avgs = get_formatter(self.bot.get_info(ctx), "PST").get_player_averages(player.name)
             if avgs:
                 await ctx.send(embed=avgs)
             else:
@@ -113,7 +110,7 @@ class SheetInfo:
         guild_id = ctx.guild.id
         player = self.get_player_by_name(ctx, player_name)
         if player:
-            formatter = self._get_formatter(ctx, tz)
+            formatter = get_formatter(self.bot.get_info(ctx), tz)
             if formatter:
                 if time:
                     msg = formatter.get_player_at_time(player, day_int, time)
@@ -161,14 +158,14 @@ class SheetInfo:
             await ctx.send(superior_hog)
             return
 
+        info = self.bot.get_info(ctx)
+
         day = datetime.datetime.today().weekday()
-        formatter = self._get_formatter(ctx, split[-1])
+        formatter = get_formatter(info, split[-1])
         if not formatter:
-            formatter = self._get_formatter(ctx, 'PST')
+            formatter = get_formatter(info, 'PST')
         else:
             del split[-1]
-        guild_id = ctx.guild.id
-        info = self.bot.get_info(ctx)
 
         if 'tomorrow' in split:
             if not Formatter.day_name(day) == 'Sunday':
@@ -192,15 +189,14 @@ class SheetInfo:
             arg = split[0].lower()
             player = self.get_player_by_name(ctx, arg)
 
-            embed = None
             if player:
                 embed = formatter.get_player_this_week(player, info.week_schedule)
             elif is_hour(arg):
-                embed = formatter.get_hour_schedule(info, day, arg)
+                embed = formatter.get_hour_schedule(day, arg)
             elif arg in ['today', 'tomorrow']:
                 embed = formatter.get_day_schedule(info.players, day)
             elif arg == 'week':
-                embed = formatter.get_week_activity_schedule(info.week_schedule)
+                embed = formatter.get_week_activity_schedule(self.bot, info.week_schedule)
             else:
                 day_int = SheetInfo.get_day_int(arg)
                 if day_int is not None:
@@ -246,7 +242,7 @@ class SheetInfo:
                     if target_day is None:
                         await ctx.send("Invalid day.")
                     else:
-                        await send_embed(formatter.get_hour_schedule(info, target_day, given_day))
+                        await send_embed(formatter.get_hour_schedule(target_day, given_day))
             elif decider == 'on':
                 day = self.get_day_int(given_day)
                 if day is None:

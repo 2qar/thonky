@@ -38,16 +38,15 @@ thonk_link = "https://cdn.discordapp.com/attachments/437847669839495170/47683785
 sheet_url = "https://docs.google.com/spreadsheets/d/"
 
 
-def get_formatter(bot, ctx: Context, tz: str):
+def get_formatter(info, tz: str):
     start_time = get_start_time(tz)
     if start_time:
-        return Formatter(bot, ctx, tz, start_time)
+        return Formatter(info, tz, start_time)
 
 
 class Formatter:
-    def __init__(self, bot, ctx, tz, start_time):
-        self.bot = bot
-        self.ctx = ctx
+    def __init__(self, info, tz, start_time):
+        self.info = info
         self.tz = tz.upper()
         self.start_time = start_time
 
@@ -59,8 +58,7 @@ class Formatter:
     def get_template_embed(self, title):
         embed = Embed()
         embed.colour = Colour.green()
-        sheet_link = sheet_url + self.bot.get_info(self.ctx).get_config()['doc_key']
-        embed.set_author(name=title, url=sheet_link, icon_url=spreadsheet_logo)
+        embed.set_author(name=title, url=self.info.sheet_link, icon_url=spreadsheet_logo)
         embed.set_footer(text=f"Times shown in {self.tz}")
         embed.set_thumbnail(url=thonk_link)
         return embed
@@ -96,7 +94,6 @@ class Formatter:
         availability_emotes = [status_emotes[response] for response in availability]
         return ', '.join(availability_emotes)
 
-    # TODO: Replace this with get_player_during_week or something like that
     def get_player_on_day(self, player, day: int):
         day_name = Formatter.day_name(day)
         embed = self.get_template_embed(f"{player.name} on {day_name}")
@@ -119,9 +116,9 @@ class Formatter:
 
         return embed
 
-    def get_player_averages(self, guild_id, player_name):
+    def get_player_averages(self, player_name):
         embed = self.get_template_embed(f"Average Responses for {player_name}")
-        responses = DataAnalyzer.get_response_percents(guild_id, player_name)
+        responses = DataAnalyzer.get_response_percents(self.info.guild_id, player_name)
         if not responses:
             return
 
@@ -132,9 +129,9 @@ class Formatter:
         embed.set_footer(text="")
         return embed
 
-    def get_hour_schedule(self, server_info, day, hour):
-        players = server_info.players
-        week_schedule = server_info.week_schedule
+    def get_hour_schedule(self, day, hour):
+        players = self.info.players
+        week_schedule = self.info.week_schedule
 
         day_obj = week_schedule[day]
         activity = day_obj.get_activity_at_time(hour, self.start_time)
@@ -177,17 +174,18 @@ class Formatter:
 
         return embed
 
-    def get_week_activity_schedule(self, week_schedule):
+    def get_week_activity_schedule(self, bot, week_schedule):
         week = week_schedule[0].date
         embed = self.get_template_embed(f"Week of {week}")
         self.add_time_field(embed, "Times")
+        emoji_guild = bot.get_guild(437847669839495168)
 
         def get_formatted_activity_name(activity):
             if activity == '' or activity == 'TBD':
                 return ":grey_question:"
             else:
                 activity_emoji_name = activity.lower().replace(" ", "_")
-                for emote in self.bot.get_guild(437847669839495168).emojis:
+                for emote in emoji_guild.emojis:
                     if emote.name == activity_emoji_name:
                         return str(emote)
 
