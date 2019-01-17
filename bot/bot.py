@@ -6,6 +6,7 @@ from typing import Union, Dict
 
 from .server_info import GuildInfo, TeamInfo
 from .ping_scheduler import PingScheduler
+from .sheetbot import SheetHandler
 from .dbhandler import DBHandler
 
 
@@ -17,6 +18,7 @@ class Bot(DiscordBot):
         super().__init__('!')
         self.server_info: Dict[str, GuildInfo] = {}
         self.ping_scheduler = PingScheduler()
+        self.sheet_handler: SheetHandler = SheetHandler()
         self.run(token)
 
     def add_cogs(self):

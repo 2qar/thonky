@@ -49,7 +49,7 @@ class SheetInfo:
 
     async def _on_command_error(self, ctx: Context, exception):
         if type(ctx.cog) == type(self):
-            if not self.bot.get_info(ctx).sheet_handler:
+            if not self.bot.get_info(ctx).sheet:
                 await ctx.send("No doc key provided.")
             else:
                 await ctx.send(f"{exception} :(")
@@ -404,9 +404,8 @@ class SheetInfo:
                     cells = cell_container.cells[range_start:range_end]
                 parsed_values = await value_parser(split[value_start_index + 2::])
                 if parsed_values:
-                    handler = info.sheet_handler
                     try:
-                        log = handler.update_cells(sheet_name, cells, parsed_values)
+                        log = info.sheet.update_cells(sheet_name, cells, parsed_values)
                         await ctx.send(f"Changed {log[0]} to {log[1]}")
                     except IndexError:
                         await ctx.send("Weird amount of values given for the range given.")

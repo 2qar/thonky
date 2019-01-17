@@ -3,19 +3,19 @@ from discord import NotFound
 from calendar import day_name as day_names
 from apscheduler.jobstores.memory import MemoryJobStore
 
-from .sheetbot import SheetHandler
+from .sheetbot import Sheet
 from .dbhandler import DBHandler
 
 
 class BaseInfo(ABC):
     def _init_sheet(self, doc_key: str):
-        self.sheet_handler = SheetHandler(doc_key)
+        self.sheet: Sheet = self.bot.sheet_handler.get_sheet(doc_key)
         self._init_sheet_attrs()
 
     def _init_sheet_attrs(self):
-        self.players = self.sheet_handler.get_players()
-        self.week_schedule = self.sheet_handler.get_week_schedule()
-        self.valid_activities = self.sheet_handler.get_valid_activities()
+        self.players = self.sheet.get_players()
+        self.week_schedule = self.sheet.get_week_schedule()
+        self.valid_activities = self.sheet.get_valid_activities()
 
     def __init__(self, guild_id, config, bot):
         self.guild_id = guild_id
@@ -28,11 +28,12 @@ class BaseInfo(ABC):
             "pings": MemoryJobStore()
         }
 
-        if self.config['doc_key']:
-            self._init_sheet(self.config['doc_key'])
+        doc_key = config['doc_key']
+        if doc_key:
+            self._init_sheet(doc_key)
             bot.ping_scheduler.setup_guild(self)
         else:
-            self.sheet_handler = None
+            self.sheet = None
             self.players = None
             self.week_schedule = None
             self.valid_activities = None
@@ -88,17 +89,17 @@ class BaseInfo(ABC):
         if not doc_key:
             await try_send('No spreadsheet given for this server :(')
             return
-        elif self.sheet_handler:
-            if doc_key == self.sheet_handler.doc_key and self.sheet_handler.updated:
+        elif self.sheet:
+            if doc_key == self.sheet.id and self.sheet.updated:
                 await try_send("Nothing to update.")
                 return
 
         self.scanning = True
 
-        if not self.sheet_handler:
+        if not self.sheet:
             self._init_sheet(doc_key)
         else:
-            self.sheet_handler.doc_key = doc_key
+            self.sheet.id = doc_key
             self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
@@ -109,7 +110,7 @@ class BaseInfo(ABC):
             self.bot.ping_scheduler.setup_guild(self)
 
         self.scanning = False
-        self.sheet_handler.update_modified()
+        self.sheet.update_modified()
         await try_send("Finished updating. :)")
 
 
