@@ -1,6 +1,5 @@
-from gspread import Client, Cell, Worksheet, Spreadsheet
+from gspread_asyncio import AsyncioGspreadClientManager, AsyncioGspreadClient, Cell, AsyncioGspreadSpreadsheet
 from oauth2client.service_account import ServiceAccountCredentials
-from google.auth.transport.requests import Request
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from typing import List, Tuple, Dict
@@ -21,15 +20,14 @@ def stripped_utcnow() -> datetime:
 
 
 def check_creds(func):
-    def wrapper(*args):
+    async def wrapper(*args):
         self: Sheet = args[0]
-        if self._sheet_handler.expired:
-            self._sheet_handler.auth.refresh(Request())
-        return func(*args)
+        await self._sheet.agcm.authorize()
+        return await func(*args)
     return wrapper
 
 
-class SheetHandler(Client):
+class SheetHandler(AsyncioGspreadClientManager):
     """ Used for snatching some useful information from a sheet using a given doc key """
 
     @staticmethod
@@ -40,25 +38,30 @@ class SheetHandler(Client):
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         self.auth = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
         super().__init__(self.auth)
-        self.login()
 
+        self.gc: AsyncioGspreadClient = None
         self.expiry = self._get_expiry()
+
+    async def init(self):
+        self.gc = await self.authorize()
 
     @property
     def expired(self):
         return stripped_utcnow() > self.expiry
 
-    def get_sheet(self, doc_key: str):
-        return Sheet(self, doc_key)
+    async def get_sheet(self, doc_key: str):
+        return Sheet(await self.gc.open_by_key(doc_key))
 
 
 # TODO: Better logging
-class Sheet(Spreadsheet):
-    def __init__(self, sheet_handler: SheetHandler, doc_key):
-        super().__init__(sheet_handler, {'id': doc_key})
-
-        self._sheet_handler = sheet_handler
+class Sheet:
+    def __init__(self, sheet: AsyncioGspreadSpreadsheet):
+        self._sheet = sheet
         self._last_modified = self._get_last_modified()
+
+    @property
+    def id(self):
+        return self._sheet.id
 
     @property
     def updated(self):
@@ -77,10 +80,10 @@ class Sheet(Spreadsheet):
         self._last_modified = stripped_utcnow()
 
     @check_creds
-    def get_players(self) -> Players:
+    async def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
 
-        availability = self.worksheet("Team Availability")
+        availability = await self._sheet.worksheet("Team Availability")
 
         print("Getting player cells...")
         player_range_end = availability.find("Tanks Available:").row
@@ -101,7 +104,7 @@ class Sheet(Spreadsheet):
                     sorted_players[role] = []
                 name = vals[2]
 
-                player_doc = self.worksheet(name)
+                player_doc = await self._sheet.worksheet(name)
                 if player_doc:
                     available_times: List[Cell] = player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
@@ -133,7 +136,7 @@ class Sheet(Spreadsheet):
         return [get_value(rule) for rule in week_formats]
 
     @check_creds
-    def get_week_schedule(self) -> WeekSchedule:
+    async def get_week_schedule(self) -> WeekSchedule:
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
         # get all of the cell notes
@@ -149,7 +152,7 @@ class Sheet(Spreadsheet):
                   f"\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
             notes = [''] * 6
 
-        activity_sheet = self.worksheet("Weekly Schedule")
+        activity_sheet = await self._sheet.worksheet("Weekly Schedule")
         day_rows = activity_sheet.range("B3:B9")
 
         def get_day(row, given_notes):
@@ -170,10 +173,10 @@ class Sheet(Spreadsheet):
         return WeekSchedule(days)
 
     @check_creds
-    def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
+    async def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
 
-        sheet = self.worksheet(sheet_name)
+        sheet = await self._sheet.worksheet(sheet_name)
 
         if len(values) != len(cells) and len(values) != 1:
             raise IndexError("Length of values given doesn't match the amount of cells.")
