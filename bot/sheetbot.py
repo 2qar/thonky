@@ -1,12 +1,11 @@
-from gspread import Client, Cell, Worksheet
+from gspread import Client, Cell, Worksheet, Spreadsheet
 from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from typing import List, Tuple, Dict
 
-from .creds_helper import get_creds
+from .creds_helper import get_service
 from .players import Player
 from .players import Players
 from .schedules import DaySchedule
@@ -23,9 +22,9 @@ def stripped_utcnow() -> datetime:
 
 def check_creds(func):
     def wrapper(*args):
-        self: SheetHandler = args[0]
-        if stripped_utcnow() > self.expiry:
-            self.auth.refresh(Request())
+        self: Sheet = args[0]
+        if self._sheet_handler.expired:
+            self._sheet_handler.auth.refresh(Request())
         return func(*args)
     return wrapper
 
@@ -33,37 +32,41 @@ def check_creds(func):
 class SheetHandler(Client):
     """ Used for snatching some useful information from a sheet using a given doc key """
 
-    script_id = '1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm'
-
     @staticmethod
     def _get_expiry():
         return stripped_utcnow() + timedelta(seconds=ServiceAccountCredentials.MAX_TOKEN_LIFETIME_SECS)
 
-    def __init__(self, doc_key):
+    def __init__(self):
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         self.auth = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
         super().__init__(self.auth)
         self.login()
 
         self.expiry = self._get_expiry()
-        self.doc_key = doc_key
-        self.last_modified = self._get_last_modified_time()
 
-    @staticmethod
-    def _get_service(service_type, version):
-        scopes = [
-            'https://www.googleapis.com/auth/drive',
-            'https://www.googleapis.com/auth/script.projects',
-            'https://www.googleapis.com/auth/spreadsheets'
-        ]
-        return build(service_type, version, credentials=get_creds(scopes))
+    @property
+    def expired(self):
+        return stripped_utcnow() > self.expiry
 
-    def _get_sheet(self, sheet_name) -> Worksheet:
-        return self.open_by_key(self.doc_key).worksheet(sheet_name)
+    def get_sheet(self, doc_key: str):
+        return Sheet(self, doc_key)
 
-    def _get_last_modified_time(self):
-        service = self._get_service('drive', 'v3')
-        response = service.files().get(fileId=self.doc_key, fields='modifiedTime').execute()
+
+# TODO: Better logging
+class Sheet(Spreadsheet):
+    def __init__(self, sheet_handler: SheetHandler, doc_key):
+        super().__init__(sheet_handler, {'id': doc_key})
+
+        self._sheet_handler = sheet_handler
+        self._last_modified = self._get_last_modified()
+
+    @property
+    def updated(self):
+        return bool(self._get_last_modified() <= self._last_modified)
+
+    def _get_last_modified(self):
+        service = get_service('drive', 'v3')
+        response = service.files().get(fileId=self.id, fields='modifiedTime').execute()
 
         modified_time = response['modifiedTime']
         modified_time = modified_time[:modified_time.rfind('.')]
@@ -71,22 +74,13 @@ class SheetHandler(Client):
 
     def update_modified(self):
         """ Set last_modified to right now without the whole microsecond junk """
-        self.last_modified = stripped_utcnow()
-
-    @property
-    def updated(self):
-        modified_time = self._get_last_modified_time()
-
-        if modified_time <= self.last_modified:
-            return True
-
-        return False
+        self._last_modified = stripped_utcnow()
 
     @check_creds
     def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
 
-        availability = self._get_sheet("Team Availability")
+        availability = self.worksheet("Team Availability")
 
         print("Getting player cells...")
         player_range_end = availability.find("Tanks Available:").row
@@ -107,7 +101,7 @@ class SheetHandler(Client):
                     sorted_players[role] = []
                 name = vals[2]
 
-                player_doc = self._get_sheet(name)
+                player_doc = self.worksheet(name)
                 if player_doc:
                     available_times: List[Cell] = player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
@@ -128,9 +122,9 @@ class SheetHandler(Client):
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
-        service = SheetHandler._get_service('sheets', 'v4')
+        service = get_service('sheets', 'v4')
         response = service.spreadsheets().get(
-            spreadsheetId=self.doc_key,
+            spreadsheetId=self.id,
             fields='sheets(properties(title,sheetId),conditionalFormats)'
         ).execute()
         week_formats = response['sheets'][1]['conditionalFormats']
@@ -143,17 +137,19 @@ class SheetHandler(Client):
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
         # get all of the cell notes
-        request = {'function': 'getCellNotes', 'parameters': [self.doc_key, 'C3:H9']}
-        service = SheetHandler._get_service('script', 'v1')
-        response = service.scripts().run(body=request, scriptId=SheetHandler.script_id).execute()
+        request = {'function': 'getCellNotes', 'parameters': [self.id, 'C3:H9']}
+        service = get_service('script', 'v1')
+        response = service.scripts().run(
+            body=request,
+            scriptId='1LPgef8gEDpefvna6p9AZVKrqvpNqWVxRD6yOhYZgFSs3QawU1ktypVEm').execute()
         try:
             notes = response['response']['result']
         except KeyError:
-            print(f"ERROR grabbing notes on sheet with key [{self.doc_key}]."
+            print(f"ERROR grabbing notes on sheet with key [{self.id}]."
                   f"\nDoes your Google account you authenticated this app with have read access on the spreadsheet?")
             notes = [''] * 6
 
-        activity_sheet = self._get_sheet("Weekly Schedule")
+        activity_sheet = self.worksheet("Weekly Schedule")
         day_rows = activity_sheet.range("B3:B9")
 
         def get_day(row, given_notes):
@@ -177,7 +173,7 @@ class SheetHandler(Client):
     def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
         """ Updates a range of cells and returns the values before and after. """
 
-        sheet = self._get_sheet(sheet_name)
+        sheet = self.worksheet(sheet_name)
 
         if len(values) != len(cells) and len(values) != 1:
             raise IndexError("Length of values given doesn't match the amount of cells.")

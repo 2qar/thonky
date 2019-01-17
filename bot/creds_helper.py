@@ -1,6 +1,7 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
 from dateutil.parser import parse
 import os
@@ -55,3 +56,12 @@ def get_creds(scopes: List[str]) -> Credentials:
             save_creds(creds_path, creds)
 
     return creds
+
+
+def get_service(service_type, version):
+    scopes = [
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/script.projects',
+        'https://www.googleapis.com/auth/spreadsheets'
+    ]
+    return build(service_type, version, credentials=get_creds(scopes))
