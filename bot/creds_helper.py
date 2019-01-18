@@ -64,4 +64,4 @@ def get_service(service_type, version):
         'https://www.googleapis.com/auth/script.projects',
         'https://www.googleapis.com/auth/spreadsheets'
     ]
-    return build(service_type, version, credentials=get_creds(scopes))
+    return build(service_type, version, credentials=get_creds(scopes), cache_discovery=False)

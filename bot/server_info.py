@@ -8,13 +8,13 @@ from .dbhandler import DBHandler
 
 
 class BaseInfo(ABC):
-    def _init_sheet(self, doc_key: str):
-        self.sheet: Sheet = self.bot.sheet_handler.get_sheet(doc_key)
-        self._init_sheet_attrs()
+    async def _init_sheet(self, doc_key: str):
+        self.sheet: Sheet = await self.bot.sheet_handler.get_sheet(doc_key)
+        await self._init_sheet_attrs()
 
-    def _init_sheet_attrs(self):
-        self.players = self.sheet.get_players()
-        self.week_schedule = self.sheet.get_week_schedule()
+    async def _init_sheet_attrs(self):
+        self.players = await self.sheet.get_players()
+        self.week_schedule = await self.sheet.get_week_schedule()
         self.valid_activities = self.sheet.get_valid_activities()
 
     def __init__(self, guild_id, config, bot):
@@ -28,17 +28,18 @@ class BaseInfo(ABC):
             "pings": MemoryJobStore()
         }
 
-        doc_key = config['doc_key']
-        if doc_key:
-            self._init_sheet(doc_key)
-            bot.ping_scheduler.setup_guild(self)
-        else:
-            self.sheet = None
-            self.players = None
-            self.week_schedule = None
-            self.valid_activities = None
+        self.sheet = None
+        self.players = None
+        self.week_schedule = None
+        self.valid_activities = None
 
         self.scanning = False
+
+    async def init_sheet(self):
+        doc_key = self.config['doc_key']
+        if doc_key:
+            await self._init_sheet(doc_key)
+            self.bot.ping_scheduler.setup_guild(self)
 
     @property
     def sheet_link(self):
@@ -97,10 +98,10 @@ class BaseInfo(ABC):
         self.scanning = True
 
         if not self.sheet:
-            self._init_sheet(doc_key)
+            await self._init_sheet(doc_key)
         else:
             self.sheet.id = doc_key
-            self._init_sheet_attrs()
+            await self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
         has_jobstores = self.bot.ping_scheduler.has_info_jobstores(self)
@@ -140,6 +141,10 @@ class GuildInfo(BaseInfo):
         def get_team_info(team_config): return TeamInfo(guild_id, team_config, bot)
         with DBHandler() as handler:
             self._teams = [get_team_info(team_config) for team_config in handler.get_teams(guild_id)]
+
+    async def init_team_sheets(self):
+        for team in self._teams:
+            await team.init_sheet()
 
     def get_id(self):
         return self.guild_id

@@ -272,6 +272,7 @@ class SheetInfo:
                     msg = formatter.get_player_at_time(player, day_int, given_time)
                     await ctx.send(msg)
 
+    # FIXME: Coroutine not iterable somewhere
     @command(pass_context=True, hidden=True)
     @if_doc_key()
     async def set(self, ctx, *, args):
@@ -405,7 +406,7 @@ class SheetInfo:
                 parsed_values = await value_parser(split[value_start_index + 2::])
                 if parsed_values:
                     try:
-                        log = info.sheet.update_cells(sheet_name, cells, parsed_values)
+                        log = await info.sheet.update_cells(sheet_name, cells, parsed_values)
                         await ctx.send(f"Changed {log[0]} to {log[1]}")
                     except IndexError:
                         await ctx.send("Weird amount of values given for the range given.")

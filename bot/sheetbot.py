@@ -31,23 +31,19 @@ class SheetHandler(AsyncioGspreadClientManager):
     """ Used for snatching some useful information from a sheet using a given doc key """
 
     @staticmethod
-    def _get_expiry():
-        return stripped_utcnow() + timedelta(seconds=ServiceAccountCredentials.MAX_TOKEN_LIFETIME_SECS)
+    def _get_service_creds():
+        return ServiceAccountCredentials.from_json_keyfile_name(
+            'creds/service_account.json',
+            ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        )
 
     def __init__(self):
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        self.auth = ServiceAccountCredentials.from_json_keyfile_name('creds/service_account.json', scope)
-        super().__init__(self.auth)
+        super().__init__(self._get_service_creds)
 
         self.gc: AsyncioGspreadClient = None
-        self.expiry = self._get_expiry()
 
     async def init(self):
         self.gc = await self.authorize()
-
-    @property
-    def expired(self):
-        return stripped_utcnow() > self.expiry
 
     async def get_sheet(self, doc_key: str):
         return Sheet(await self.gc.open_by_key(doc_key))
@@ -86,9 +82,10 @@ class Sheet:
         availability = await self._sheet.worksheet("Team Availability")
 
         print("Getting player cells...")
-        player_range_end = availability.find("Tanks Available:").row
+        player_range_end = await availability.find("Tanks Available:")
+        player_range_end = player_range_end.row
         player_range = "C4:C" + str(player_range_end)
-        player_cells = availability.range(player_range)
+        player_cells = await availability.range(player_range)
 
         role = ""
         players = []
@@ -97,7 +94,7 @@ class Sheet:
         print("Creating player objects...")
         for cell in player_cells:
             if cell.value != '':
-                cells = availability.range('A{0}:C{0}'.format(cell.row))
+                cells = await availability.range('A{0}:C{0}'.format(cell.row))
                 vals = [val.value for val in cells]
                 if vals[1] != '':
                     role = vals[1]
@@ -106,7 +103,7 @@ class Sheet:
 
                 player_doc = await self._sheet.worksheet(name)
                 if player_doc:
-                    available_times: List[Cell] = player_doc.range('C3:H9')
+                    available_times: List[Cell] = await player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
                         if response == '':
                             available_times[i].value = 'Nothing'
@@ -153,9 +150,9 @@ class Sheet:
             notes = [''] * 6
 
         activity_sheet = await self._sheet.worksheet("Weekly Schedule")
-        day_rows = activity_sheet.range("B3:B9")
+        day_rows = await activity_sheet.range("B3:B9")
 
-        def get_day(row, given_notes):
+        async def get_day(row, given_notes):
             split = row.value.split()
 
             name = split[0]
@@ -164,11 +161,11 @@ class Sheet:
             date = split[1]
 
             row_range = "C{0}:H{0}".format(row.row)
-            activity_cells = activity_sheet.range(row_range)
+            activity_cells = await activity_sheet.range(row_range)
 
             return DaySchedule(name, date, activity_cells, given_notes)
 
-        days = [get_day(row, note) for row, note in zip(day_rows, notes)]
+        days = [await get_day(row, note) for row, note in zip(day_rows, notes)]
 
         return WeekSchedule(days)
 
