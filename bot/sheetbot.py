@@ -118,7 +118,6 @@ class Sheet:
         print("Done! :)")
         return player_obj
 
-    @check_creds
     def get_valid_activities(self) -> List[str]:
         """ Get a list of valid activities to write to the weekly schedule """
 
@@ -185,7 +184,7 @@ class Sheet:
         else:
             for cell in cells:
                 cell.value = values[0]
-        sheet.update_cells(cells)
+        await sheet.update_cells(cells)
         self.update_modified()
 
         return before, values

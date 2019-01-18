@@ -272,7 +272,6 @@ class SheetInfo:
                     msg = formatter.get_player_at_time(player, day_int, given_time)
                     await ctx.send(msg)
 
-    # FIXME: Coroutine not iterable somewhere
     @command(pass_context=True, hidden=True)
     @if_doc_key()
     async def set(self, ctx, *, args):
