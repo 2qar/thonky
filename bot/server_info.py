@@ -100,7 +100,6 @@ class BaseInfo(ABC):
         if not self.sheet:
             await self._init_sheet(doc_key)
         else:
-            self.sheet.id = doc_key
             await self._init_sheet_attrs()
 
         ping_channel = self.get_ping_channel()
