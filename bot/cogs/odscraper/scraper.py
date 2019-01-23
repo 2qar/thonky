@@ -1,16 +1,22 @@
 from aiohttp import ClientSession
 from pybuff import get_player, BadBattletag
-import typing
+from typing import Dict, List
 
 
 class LinkNotFound(Exception):
         """Raised when an important link gives a status code other than 200"""
 
 
-async def get_player_info(player_json: dict, session: ClientSession, owner=False) -> dict:
+async def get_player_info(active_ids: List[str], player_json: dict, session: ClientSession, owner=False) -> dict:
     user = player_json['user'] if not owner else player_json
 
-    player_info = {'name': user['username']}
+    _id = player_json['_id']
+    active = False
+    if _id in active_ids:
+        active_ids.remove(_id)
+        active = True
+
+    player_info = {'name': user['username'], 'active': active}
 
     battletag = ''
     try:
@@ -22,6 +28,7 @@ async def get_player_info(player_json: dict, session: ClientSession, owner=False
             pass
         
     try:
+        # FIXME: Session closing on certain players
         player_info['info'] = await get_player(battletag, session=session)
     except BadBattletag:
         player_info['info'] = None
@@ -29,9 +36,10 @@ async def get_player_info(player_json: dict, session: ClientSession, owner=False
     return player_info
 
 
-async def get_team_info(persistent_team_id: str, session: ClientSession) -> dict or str:
+async def get_team_info(match: Dict, session: ClientSession) -> dict or str:
     team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-    curr_link = team_link + persistent_team_id
+    team = match[match['pos']]
+    curr_link = team_link + get_team_id(team)
     async with session.get(curr_link) as request:
         if request.status == 200:
             data = await request.json()
@@ -46,10 +54,11 @@ async def get_team_info(persistent_team_id: str, session: ClientSession) -> dict
         'name': data['name'],
         'logo': data['logoUrl']
     }
-    # team_info['link'] = 'https://battlefy.com/teams/' + persistent_team_id
+    team = team['team']
+    active_ids = [list(filter(lambda x: x['_id'] == _id, team['players']))[0]['persistentPlayerID'] for _id in team['playerIDs']]
 
-    players = [await get_player_info(player, session) for player in data['persistentPlayers']]
-    players.insert(0, await get_player_info(data['owner'], session, owner=True))
+    players = [await get_player_info(active_ids, player, session) for player in data['persistentPlayers']]
+    players.insert(0, await get_player_info(active_ids, data['owner'], session, owner=True))
     team_info['players'] = players
 
     average_sr = 0
@@ -75,7 +84,7 @@ def get_team_id(team):
         return None
 
 
-async def get_match(stage_id: str, od_round: str, team_id: str, session: ClientSession) -> typing.Dict or None:
+async def get_match(stage_id: str, od_round: str, team_id: str, session: ClientSession) -> Dict or None:
     """
     Looks through all of the matches in od_round and returns the one with the given persistentTeamID
 
@@ -96,13 +105,26 @@ async def get_match(stage_id: str, od_round: str, team_id: str, session: ClientS
         if not matches_json:
             return
 
+        found_match = None
+        pos = ''
+        positions = ['top', 'bottom']
         for match in matches_json:
-            for key in ['top', 'bottom']:
+            for key in positions:
                 if get_team_id(match[key]) == team_id:
-                    return match
+                    found_match = match
+                    pos = positions[positions.index(key) - 1]
+                    break
+
+        if found_match:
+            async with session.get(f"https://dtmwra1jsgyb0.cloudfront.net/matches/{found_match['_id']}"
+                                   f"?extend[{pos}.team][players][users]") as r:
+                match_json = await r.json()
+            match_json = match_json[0]
+            match_json['pos'] = pos
+            return match_json
 
 
-async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> typing.Dict or None:
+async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dict or None:
     """
     Get information on the team we're matched up against in the given round (od_round)
 
@@ -126,11 +148,7 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> typ
     match_link = match_link_base.format(match['stageID'], match['_id'])
     
     # get the info about the team
-    team_info = None
-    for key in ['top', 'bottom']:
-        current_team_id = get_team_id(match[key])
-        if current_team_id != team_id:
-            team_info = await get_team_info(current_team_id, session)
+    team_info = await get_team_info(match, session)
 
     await session.close()
 
