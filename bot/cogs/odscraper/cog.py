@@ -68,7 +68,7 @@ class ODScraper:
             top_average = f"Top 6 Average: {get_top_average()}"
             embed.add_field(name=top_average, value=player_string)
         else:
-            embed.add_field(name=f"Average SR: {team_info['sr_avg']}")
+            embed.add_field(name=f"Average SR: {team_info['sr_avg']}", value=player_string)
 
         return embed
 
