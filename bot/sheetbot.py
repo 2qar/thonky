@@ -22,7 +22,8 @@ def stripped_utcnow() -> datetime:
 def check_creds(func):
     async def wrapper(*args):
         self: Sheet = args[0]
-        await self._sheet.agcm.authorize()
+        if self._sheet.agcm.expired:
+            await self._update_sheet_creds()
         return await func(*args)
     return wrapper
 
@@ -42,10 +43,15 @@ class SheetHandler(AsyncioGspreadClientManager):
 
         self.gc: AsyncioGspreadClient = None
 
+    @property
+    def expired(self):
+        return self.auth_time is None or self.auth_time + self.reauth_interval < self._loop.time()
+
     async def init(self):
         self.gc = await self.authorize()
 
     async def get_sheet(self, doc_key: str):
+        await self.init()
         return Sheet(await self.gc.open_by_key(doc_key))
 
 
@@ -54,6 +60,11 @@ class Sheet:
     def __init__(self, sheet: AsyncioGspreadSpreadsheet):
         self._sheet = sheet
         self._last_modified = self._get_last_modified()
+
+    async def _update_sheet_creds(self):
+        agcm: AsyncioGspreadClientManager = self._sheet.agcm
+        gc = await agcm.authorize()
+        self._sheet = await gc.open_by_key(self._sheet.id)
 
     @property
     def id(self):
