@@ -77,7 +77,7 @@ class Config:
                 delete_channel_with_id(_id)
 
             if channels:
-                info.update_config(ctx, 'channels', current_channels + [channel.id for channel in channels])
+                info.update_config('channels', current_channels + [channel.id for channel in channels])
                 added_channels = ', '.join([channel.mention for channel in channels])
                 await ctx.send(f"Added {added_channels}. :)")
             else:
@@ -98,6 +98,7 @@ class Config:
                     if channel.id in current_channels:
                         deleted.append(channel)
                         del(current_channels[current_channels.index(channel.id)])
+                info.update_config('channels', current_channels)
                 deleted_str = ', '.join([channel.mention for channel in deleted])
                 await ctx.send(f"Removed {deleted_str}. :)")
 
