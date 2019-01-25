@@ -28,7 +28,6 @@ async def get_player_info(active_ids: List[str], player_json: dict, session: Cli
             pass
         
     try:
-        # FIXME: Session closing on certain players
         player_info['info'] = await get_player(battletag, session=session)
     except BadBattletag:
         player_info['info'] = None
