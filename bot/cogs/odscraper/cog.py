@@ -48,7 +48,8 @@ class ODScraper:
                 sr = player['info'].get_sr()
                 if sr == 0:
                     sr = '???'
-                return f"{role_emote} {player['name']}: {sr}"
+                name = player['name'] if not player['active'] else f"**{player['name']}**"
+                return f"{role_emote} {name}: {sr}"
 
         player_string = '\n'.join([format_player_info(player) for player in team_info['players']])
 
