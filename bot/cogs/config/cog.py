@@ -33,12 +33,7 @@ class Config:
 
     def write_property(self, ctx: Context, key: str, value: Any):
         """ Update a single property of a server's config """
-        info = self.bot.get_info(ctx)
-        with DBHandler() as handler:
-            if isinstance(info, GuildInfo):
-                handler.update_server_config(ctx.guild.id, key, value)
-            elif isinstance(info, TeamInfo):
-                handler.update_team_config(ctx.guild.id, info.team_name, key, value)
+        self.bot.get_info(ctx).update_config(key, value)
 
     @command(pass_context=True)
     async def add_team(self, ctx: Context, team_name: str, channel: TextChannelConverter):
@@ -70,25 +65,23 @@ class Config:
         if isinstance(info, GuildInfo):
             await ctx.send("No team in this channel.")
         else:
-            with DBHandler() as handler:
-                current_channels = handler.get_team_config(ctx.guild.id, info.team_name)['channels']
+            current_channels = info.config['channels']
 
-                def delete_channel_with_id(channel_id: int):
-                    for i in range(len(channels)):
-                        if channels[i].id == channel_id:
-                            del(channels[i])
-                            i -= 1
+            def delete_channel_with_id(channel_id: int):
+                for i in range(len(channels)):
+                    if channels[i].id == channel_id:
+                        del(channels[i])
+                        i -= 1
 
-                for _id in current_channels:
-                    delete_channel_with_id(_id)
+            for _id in current_channels:
+                delete_channel_with_id(_id)
 
-                if channels:
-                    handler.update_team_config(ctx.guild.id, info.team_name, 'channels',
-                                               current_channels + [channel.id for channel in channels])
-                    added_channels = ', '.join([channel.mention for channel in channels])
-                    await ctx.send(f"Added {added_channels}. :)")
-                else:
-                    await ctx.send("Channels already added.")
+            if channels:
+                info.update_config(ctx, 'channels', current_channels + [channel.id for channel in channels])
+                added_channels = ', '.join([channel.mention for channel in channels])
+                await ctx.send(f"Added {added_channels}. :)")
+            else:
+                await ctx.send("Channels already added.")
 
     @command(pass_context=True, aliases=['remove_channel'])
     async def remove_channels(self, ctx: Context, channels: Greedy[TextChannelConverter]):
@@ -96,18 +89,17 @@ class Config:
         if isinstance(info, GuildInfo):
             await ctx.send("No team in this channel.")
         else:
-            with DBHandler() as handler:
-                current_channels = handler.get_team_config(ctx.guild.id, info.team_name)['channels']
-                if len(current_channels) == len(channels):
-                    await ctx.send("Can't remove all channels from a team.")
-                else:
-                    deleted = []
-                    for channel in channels:
-                        if channel.id in current_channels:
-                            deleted.append(channel)
-                            del(current_channels[current_channels.index(channel.id)])
-                    deleted_str = ', '.join([channel.mention for channel in deleted])
-                    await ctx.send(f"Removed {deleted_str}. :)")
+            current_channels = info.config['channels']
+            if len(current_channels) == len(channels):
+                await ctx.send("Can't remove all channels from a team.")
+            else:
+                deleted = []
+                for channel in channels:
+                    if channel.id in current_channels:
+                        deleted.append(channel)
+                        del(current_channels[current_channels.index(channel.id)])
+                deleted_str = ', '.join([channel.mention for channel in deleted])
+                await ctx.send(f"Removed {deleted_str}. :)")
 
     @command(pass_context=True)
     async def set_sheet(self, ctx: Context, url: str):
@@ -181,8 +173,7 @@ class Config:
         else:
             team_url = match.group(0)
             team_id = get_last_link_element(team_url)
-            with DBHandler() as handler:
-                handler.update_server_config(ctx.guild.id, 'team_id', team_id)
+            self.write_property(ctx, 'team_id', team_id)
             await ctx.send("Team set. :)")
 
     @command(pass_context=True, name='set_tourney')
@@ -200,8 +191,7 @@ class Config:
         else:
             url = match.group(0)
             stage_id = get_last_link_element(url)
-            with DBHandler() as handler:
-                handler.update_server_config(ctx.guild.id, 'stage_id', stage_id)
+            self.write_property(ctx, 'stage_id', stage_id)
             await ctx.send("Tournament set. :)")
 
     @command(pass_context=True)
@@ -226,7 +216,7 @@ class Config:
         embed.set_author(name=f"Config for {ctx.guild.name}", icon_url=ctx.guild.icon_url)
 
         info = self.bot.get_info(ctx)
-        config = info.get_config()
+        config = info.config
 
         def add_field(name: str, value: str):
             if value is None:

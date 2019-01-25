@@ -80,7 +80,7 @@ class PingScheduler(AsyncIOScheduler):
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
         # ^ maybe only do this if pinging for every activity becomes a thing again
     def init_schedule_pings(self, channel, info: BaseInfo):
-        config = info.get_config()
+        config = info.config
         role_mention = config['role_mention']
         remind_activities = [activity.lower() for activity in config['remind_activities']]
         remind_intervals = config['remind_intervals']

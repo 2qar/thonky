@@ -445,7 +445,7 @@ class SheetInfo:
             return
 
         try:
-            doc_key = info.get_config()['doc_key']
+            doc_key = info.config['doc_key']
         except KeyError:
             ctx.send("No doc key provided for this server.")
             return

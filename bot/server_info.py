@@ -19,7 +19,6 @@ class BaseInfo(ABC):
 
     def __init__(self, guild_id, config, bot):
         self.guild_id = guild_id
-        # TODO: update config locally instead of pulling it all the time
         self.config = config
         self.bot = bot
 
@@ -43,19 +42,23 @@ class BaseInfo(ABC):
 
     @property
     def sheet_link(self):
-        return f"https://docs.google.com/spreadsheets/d/{self.get_config()['doc_key']}"
+        return f"https://docs.google.com/spreadsheets/d/{self.config['doc_key']}"
 
     @abstractmethod
     def get_id(self):
         """ Get something to use as an ID for jobstores in PingScheduler """
         pass
 
+    def update_config(self, key, value):
+        self.config[key] = value
+        self._update_config(key, value)
+
     @abstractmethod
-    def get_config(self):
+    def _update_config(self, key, value):
         pass
 
     def get_ping_channel(self):
-        channel_id = self.get_config()['announce_channel']
+        channel_id = self.config['announce_channel']
         try:
             return self.bot.get_channel(channel_id)
         except NotFound:
@@ -86,7 +89,7 @@ class BaseInfo(ABC):
         else:
             await try_send("Updating...")
 
-        doc_key = self.get_config()['doc_key']
+        doc_key = self.config['doc_key']
         if not doc_key:
             await try_send('No spreadsheet given for this server :(')
             return
@@ -121,12 +124,12 @@ class TeamInfo(BaseInfo):
     def get_id(self):
         return self.team_name.lower()
 
-    def get_config(self):
+    def _update_config(self, key, value):
         with DBHandler() as handler:
-            return handler.get_team_config(self.guild_id, self.team_name)
+            handler.update_team_config(self.guild_id, self.team_name, key, value)
 
     def has_channel(self, channel_id: int):
-        return channel_id in [int(channel) for channel in self.get_config()['channels']]
+        return channel_id in [int(channel) for channel in self.config['channels']]
 
     @property
     def team_name(self):
@@ -148,9 +151,9 @@ class GuildInfo(BaseInfo):
     def get_id(self):
         return self.guild_id
 
-    def get_config(self):
+    def _update_config(self, key, value):
         with DBHandler() as handler:
-            return handler.get_server_config(self.guild_id)
+            handler.update_server_config(self.guild_id, key, value)
 
     def get_team_in_channel(self, channel_id: int) -> TeamInfo or None:
         for team in self._teams:
