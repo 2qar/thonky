@@ -220,7 +220,7 @@ class Config:
         config = info.config
 
         def add_field(name: str, value: str):
-            if value is None:
+            if value is None or not value:
                 value = "None"
             embed.add_field(name=name, value=value, inline=False)
 
