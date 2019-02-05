@@ -220,7 +220,7 @@ class SheetInfo:
                 elif target in ['avg', 'average']:
                     await self.avg(ctx, player_name)
             elif player_name == 'od':
-                await ODScraper.send_od(ctx, target)
+                await ODScraper.send_od(info, ctx, target)
             else:
                 await ctx.send("Invalid player given.")
         elif arg_count == 3:

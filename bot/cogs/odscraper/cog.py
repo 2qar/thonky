@@ -74,17 +74,16 @@ class ODScraper:
         return embed
 
     @staticmethod
-    async def send_od(ctx, od_round):
+    async def send_od(info, ctx, od_round):
         try:
             int(od_round)
         except ValueError:
             await ctx.send("Invalid round number.")
             return
 
-        with DBHandler() as handler:
-            config = handler.get_server_config(ctx.guild.id)
-            stage_id = config['stage_id']
-            team_id = config['team_id']
+        config = info.config
+        stage_id = config['stage_id']
+        team_id = config['team_id']
 
         if not stage_id and not team_id:
             await ctx.send("No tournament or team set. :(")
@@ -104,7 +103,7 @@ class ODScraper:
 
     @commands.command(pass_context=True)
     async def od(self, ctx, od_round):
-        await ODScraper.send_od(ctx, od_round)
+        await ODScraper.send_od(self.bot.get_info(ctx), ctx, od_round)
 
 
 def setup(bot):
