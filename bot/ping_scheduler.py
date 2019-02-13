@@ -39,7 +39,6 @@ class PingScheduler(AsyncIOScheduler):
         channel = info.get_ping_channel()
         if channel:
             self.init_schedule_pings(channel, info)
-        self.print_jobs()
 
     def add_guild_job(self, func: Callable, run_date: datetime, jobstore: str, **kwargs):
         self.add_job(func, 'date', run_date=run_date, jobstore=f"{self.info.get_id()}_{jobstore}", **kwargs)
@@ -66,7 +65,7 @@ class PingScheduler(AsyncIOScheduler):
             run_time = time - datetime.timedelta(minutes=interval)
             message = f"{msg_start} {item} in {interval} minutes"
             day_name = Formatter.day_name(date.weekday())
-            ping_id = f"{day_name} {time_offset} {interval}"
+            ping_id = f"{day_name} {interval}"
             self.add_guild_job(
                 channel.send,
                 run_time,
@@ -79,7 +78,11 @@ class PingScheduler(AsyncIOScheduler):
 
     # TODO: Add more methods for updating the ping jobstore instead of just wiping it every update
         # ^ maybe only do this if pinging for every activity becomes a thing again
+    # TODO: Add an update_schedule_pings method that gets the diff bet
     def init_schedule_pings(self, channel, info: BaseInfo):
+        pingstore = f"{self.info.get_id()}_pings"
+        self.remove_all_jobs(jobstore=pingstore)
+
         config = info.config
         role_mention = config['role_mention']
         remind_activities = [activity.lower() for activity in config['remind_activities']]
@@ -112,3 +115,5 @@ class PingScheduler(AsyncIOScheduler):
 
                 # TODO: check for existing jobs and modify them on update instead of replacing them entirely maybe
                 self._add_ping(date, channel, role_mention, first_activity, day.activities, intervals=remind_intervals)
+
+        self.print_jobs(jobstore=pingstore)

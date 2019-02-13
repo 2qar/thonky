@@ -3,6 +3,7 @@ from discord.ext.commands import command, Context, Greedy, TextChannelConverter
 from discord import Embed, Color
 import re
 from typing import Any, List
+from io import StringIO
 
 from ...server_info import GuildInfo, TeamInfo
 from ...dbhandler import DBHandler
@@ -278,6 +279,14 @@ class Config:
         await session.close()
 
         await ctx.send(embed=embed)
+
+    @command(pass_context=True)
+    async def show_pings(self, ctx):
+        info = self.bot.get_info(ctx)
+        pings = StringIO()
+        self.bot.ping_scheduler.print_jobs(jobstore=f"{info.get_id()}_pings", out=pings)
+        msg = f"```\n{pings.getvalue()}\n```"
+        await ctx.send(msg)
 
 
 def setup(bot):
