@@ -88,12 +88,12 @@ class PingScheduler(AsyncIOScheduler):
         remind_activities = [activity.lower() for activity in config['remind_activities']]
         remind_intervals = config['remind_intervals']
 
-        today = datetime.date.today().weekday()
+        today = datetime.date.today()
         days = info.week_schedule.days
-        start_date = days[0].as_date()
+        today = days[today.weekday()].as_date()
 
-        for day_index, day in enumerate(days[today::]):
-            date = start_date + datetime.timedelta(days=day_index)
+        for day_index, day in enumerate(days[today.weekday()::]):
+            date = today + datetime.timedelta(days=day_index)
 
             first_activity = day.first_activity(remind_activities)
             if first_activity != -1:
