@@ -108,7 +108,7 @@ class BaseInfo(ABC):
         ping_channel = self.get_ping_channel()
         has_jobstores = self.bot.ping_scheduler.has_info_jobstores(self)
         if ping_channel and has_jobstores:
-            self.bot.ping_scheduler.init_schedule_pings(self.get_ping_channel(), self)
+            self.bot.ping_scheduler.update_schedule_pings(self.week_schedule, self)
         elif not has_jobstores:
             self.bot.ping_scheduler.setup_guild(self)
 

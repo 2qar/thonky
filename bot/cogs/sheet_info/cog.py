@@ -425,11 +425,11 @@ class SheetInfo:
             if day is not None:
                 day_obj = info.week_schedule[day]
                 await update_cells('Weekly Schedule', day_obj, parse_activities, 0)
+                self.bot.ping_scheduler.update_day_pings(day_obj, info)
             elif player is not None:
                 day = self.get_day_int(split[1])
                 if day is not None:
                     await update_cells(player.name, player, parse_availability, 1, offset=day)
-                    self.bot.ping_scheduler.init_schedule_pings(info.get_ping_channel(), info)
                 else:
                     await ctx.send(f"Invalid day \"{split[1]}\"")
             else:

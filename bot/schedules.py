@@ -30,11 +30,12 @@ class DaySchedule:
         day = int(date_split[1])
         return datetime.date(datetime.datetime.today().year, month, day)
 
-    def first_activity(self, remind_activities):
+    def first_activity(self, remind_activities: List[str]):
         """ Get the first pingable activity in the list """
 
+        lower_remind_activities = [a.lower() for a in remind_activities]
         for i, activity in enumerate(self.activities):
-            if activity.lower() in remind_activities:
+            if activity.lower() in lower_remind_activities:
                 return i
         return -1
 
@@ -61,6 +62,11 @@ class WeekSchedule:
 
     def __iter__(self):
         yield from self.days
+
+    @property
+    def today(self):
+        today = datetime.date.today().weekday()
+        return self.days[today]
 
     def get_day(self, name):
         for day in self:
