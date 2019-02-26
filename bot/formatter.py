@@ -7,7 +7,7 @@ from .player_saver import DataAnalyzer
 from .timezonehelper import get_start_time
 
 letter_emotes = [':zero:', ':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:',
-                 ':keycap_ten:', ':one::one:', ':one::two:']
+                 ':keycap_ten:', '<:eleven:548022654540578827>', '<:twelve:548220054353870849>']
 
 role_emotes = {
         "Tanks": ":shield:",
