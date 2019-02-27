@@ -9,6 +9,7 @@ from .players import Player
 from .players import Players
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
+from .dbhandler import DBHandler
 
 
 def strip_microseconds(dt: datetime) -> datetime:
@@ -24,6 +25,16 @@ def check_creds(func):
         self: Sheet = args[0]
         await self._update_sheet_creds()
         return await func(*args)
+    return wrapper
+
+def check_cache(func):
+    async def wrapper(*args):
+        self: Sheet = args[0]
+        item = func.__name__.split('_')[1:].join('_') # remove 'get' from func name
+        if self._cache[item]['last_saved'] < self._last_modified:
+            return self._cache[item]['cache']
+        else:
+            return await func(*args)
     return wrapper
 
 
@@ -56,10 +67,21 @@ class SheetHandler(AsyncioGspreadClientManager):
 
 # TODO: Better logging
 class Sheet:
-    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet):
+    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet, cache=None):
         self._handler = handler
         self._sheet = sheet
         self._last_modified = self._get_last_modified()
+        self._cache = cache or self._get_new_cache()
+
+    def _get_new_cache(self):
+        cache = {}
+        for item in ["players", "week_schedule"]:
+            cache[item] = {"last_saved": self._last_modified, "cache": None}
+        return cache
+
+    def _update_cache(self, key, item):
+        self._cache[key]['last_saved'] = datetime.now()
+        self._cache[key]['cache'] = item
 
     async def _update_sheet_creds(self):
         await self._handler.init()
@@ -86,6 +108,7 @@ class Sheet:
         self._last_modified = stripped_utcnow()
 
     @check_creds
+    @check_cache
     async def get_players(self) -> Players:
         """ Get all of the players in a nice little bundle :) """
 
@@ -126,6 +149,7 @@ class Sheet:
         player_obj = Players(sorted_players, players)
 
         print("Done! :)")
+        self._update_cache('players', player_obj)
         return player_obj
 
     def get_valid_activities(self) -> List[str]:
@@ -142,6 +166,7 @@ class Sheet:
         return [get_value(rule) for rule in week_formats]
 
     @check_creds
+    @check_cache
     async def get_week_schedule(self) -> WeekSchedule:
         """ Returns a week schedule object for getting the activities for each day n stuff """
 
@@ -176,7 +201,9 @@ class Sheet:
 
         days = [await get_day(row, note) for row, note in zip(day_rows, notes)]
 
-        return WeekSchedule(days)
+        schedule = WeekSchedule(days)
+        self._update_cache('week_schedule', schedule)
+        return schedule
 
     @check_creds
     async def update_cells(self, sheet_name: str, cells: List[Cell], values: List[str]) -> Tuple[List[str], List[str]]:
