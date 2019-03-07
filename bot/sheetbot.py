@@ -10,14 +10,7 @@ from .players import Players
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
 from .dbhandler import DBHandler
-
-
-def strip_microseconds(dt: datetime) -> datetime:
-    return dt - timedelta(microseconds=dt.microsecond)
-
-
-def stripped_utcnow() -> datetime:
-    return strip_microseconds(datetime.utcnow())
+from .helpers import stripped_utcnow
 
 
 def check_creds(func):
@@ -27,10 +20,11 @@ def check_creds(func):
         return await func(*args)
     return wrapper
 
+
 def check_cache(func):
     async def wrapper(*args):
         self: Sheet = args[0]
-        item = func.__name__.split('_')[1:].join('_') # remove 'get' from func name
+        item = '_'.join(func.__name__.split('_')[1:]) # remove 'get' from func name
         if self._cache[item]['last_saved'] < self._last_modified:
             return self._cache[item]['cache']
         else:
@@ -60,16 +54,19 @@ class SheetHandler(AsyncioGspreadClientManager):
     async def init(self):
         self.gc = await self.authorize()
 
-    async def get_sheet(self, doc_key: str):
+    async def get_sheet(self, info):
         await self.init()
-        return Sheet(self, await self.gc.open_by_key(doc_key))
+        team_name = info.team_name if hasattr(info, 'team_name') else ''
+        return Sheet(self, await self.gc.open_by_key(info.config['doc_key']), info.guild_id, team_name)
 
 
 # TODO: Better logging
 class Sheet:
-    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet, cache=None):
+    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet, guild_id: int, team_name: str, cache=None):
         self._handler = handler
         self._sheet = sheet
+        self._guild_id = guild_id
+        self._team_name = team_name
         self._last_modified = self._get_last_modified()
         self._cache = cache or self._get_new_cache()
 
@@ -82,10 +79,17 @@ class Sheet:
     def _update_cache(self, key, item):
         self._cache[key]['last_saved'] = datetime.now()
         self._cache[key]['cache'] = item
+        with DBHandler() as handler:
+            handler.update_sheet_cache(self._guild_id, self._team_name, key, item.__dict__)
 
     async def _update_sheet_creds(self):
         await self._handler.init()
         self._sheet = await self._handler.gc.open_by_key(self._sheet.id)
+
+    @classmethod
+    def from_cache(cls, doc_key: str):
+        # TODO: load sheet from db cache
+        pass
 
     @property
     def id(self):

@@ -2,6 +2,7 @@ from gspread import Cell
 from typing import List
 
 
+# TODO: Add method that serializes List of Cells, make Player and DaySchedule extend a new class CellContainer or smth
 class Player:
     def __init__(self, name: str, role: str, availability: List[Cell]):
         self.name = name

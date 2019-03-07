@@ -2,20 +2,18 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-
 from dateutil.parser import parse
 import os
 import json
-
 from typing import List
+
+from .helpers import strip_microseconds
 
 
 def save_creds(creds_path: str, creds: Credentials):
     creds_json = creds.__dict__.copy()
 
-    creds_json['expiry'] = creds_json['expiry'].isoformat()
-    expiry = creds_json['expiry']
-    creds_json['expiry'] = expiry[:expiry.rfind('.')]
+    creds_json['expiry'] = strip_microseconds(creds_json['expiry']).isoformat()
 
     public_attrs = {}
     for key in creds_json:

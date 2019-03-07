@@ -8,8 +8,8 @@ from .dbhandler import DBHandler
 
 
 class BaseInfo(ABC):
-    async def _init_sheet(self, doc_key: str):
-        self.sheet: Sheet = await self.bot.sheet_handler.get_sheet(doc_key)
+    async def _init_sheet(self):
+        self.sheet: Sheet = await self.bot.sheet_handler.get_sheet(self)
         await self._init_sheet_attrs()
 
     async def _init_sheet_attrs(self):
@@ -37,7 +37,7 @@ class BaseInfo(ABC):
     async def init_sheet(self):
         doc_key = self.config['doc_key']
         if doc_key:
-            await self._init_sheet(doc_key)
+            await self._init_sheet()
             self.bot.ping_scheduler.setup_guild(self)
 
     @property

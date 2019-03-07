@@ -1,6 +1,9 @@
 from typing import Any, List
 import psycopg2
 import json
+from datetime import datetime
+
+from .helpers import strip_microseconds
 
 
 def dictify(data, fields):
@@ -61,17 +64,31 @@ class DBHandler:
                 return results[0]
         return results
 
-    def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
-                case_sensitive=True, extra_query=''):
+    def _update_many(self, table_name: str, check_field: str, check_value: Any, updates: dict, case_sensitive=True,
+                     extra_query=''):
         """ Update row(s) from a table where a given field matches a given value. """
 
         check = get_check(check_field, case_sensitive)
+
+        update_fields = []
+        update_values = []
+        for key in updates:
+            update_fields.append(key)
+            update_values.append(updates[key])
+
+        update_string = ' AND '.join(update_fields)
+        update_values.append(check_value)
         self.cursor.execute(f"""
                 UPDATE {table_name}
-                SET {update_field} = %s
+                {update_string}
                 {check} {extra_query}
-                """, (update_value, check_value))
+                """, update_values)
         self.conn.commit()
+
+    def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
+                case_sensitive=True, extra_query=''):
+        self._update_many(table_name, check_field, check_value, {update_field: update_value},
+                          case_sensitive=case_sensitive, extra_query=extra_query)
 
     def _add(self, table_name: str, guild_id: int, given_values: dict):
         """ Insert a new row with the given values. """
@@ -130,6 +147,15 @@ class DBHandler:
 
     def add_player_data(self, server_id: int, name: str, date: str, availability: dict):
         self._add('player_data', server_id, {'name': name, 'date': date, 'availability': availability})
+
+    def update_sheet_cache(self, server_id: int, team_name: str, key: str, value: dict):
+        last_saved = strip_microseconds(datetime.now()).isoformat()
+        id_check = server_id_check(server_id)
+        if not self._search('cache', 'team_name', team_name, extra_query=id_check):
+            self._add('cache', server_id, {key: value, 'last_saved': last_saved})
+        else:
+            self._update_many('cache', 'team_name', team_name, {key: value, 'last_saved': last_saved},
+                              extra_query=id_check)
 
     def _get_table_fields(self, table_name: str):
         self.cursor.execute(f"""
