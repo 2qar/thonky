@@ -2,11 +2,10 @@ from gspread_asyncio import AsyncioGspreadClientManager, AsyncioGspreadClient, C
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 from dateutil.parser import parse
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 from .creds_helper import get_service
-from .players import Player
-from .players import Players
+from .players import Player, Players
 from .schedules import DaySchedule
 from .schedules import WeekSchedule
 from .dbhandler import DBHandler
@@ -57,12 +56,15 @@ class SheetHandler(AsyncioGspreadClientManager):
     async def get_sheet(self, info):
         await self.init()
         team_name = info.team_name if hasattr(info, 'team_name') else ''
-        return Sheet(self, await self.gc.open_by_key(info.config['doc_key']), info.guild_id, team_name)
+
+        with DBHandler() as handler:
+            cache = handler.get_sheet_cache(info.guild_id, team_name)
+        return Sheet(self, await self.gc.open_by_key(info.config['doc_key']), info.guild_id, team_name, cache)
 
 
 # TODO: Better logging
 class Sheet:
-    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet, guild_id: int, team_name: str, cache=None):
+    def __init__(self, handler: SheetHandler, sheet: AsyncioGspreadSpreadsheet, guild_id: int, team_name: str, cache):
         self._handler = handler
         self._sheet = sheet
         self._guild_id = guild_id
@@ -76,20 +78,15 @@ class Sheet:
             cache[item] = {"last_saved": self._last_modified, "cache": None}
         return cache
 
-    def _update_cache(self, key, item):
+    def _update_cache(self, key, item: Union[Players, WeekSchedule]):
         self._cache[key]['last_saved'] = datetime.now()
         self._cache[key]['cache'] = item
         with DBHandler() as handler:
-            handler.update_sheet_cache(self._guild_id, self._team_name, key, item.__dict__)
+            handler.update_sheet_cache(self._guild_id, self._team_name, key, item.as_dict())
 
     async def _update_sheet_creds(self):
         await self._handler.init()
         self._sheet = await self._handler.gc.open_by_key(self._sheet.id)
-
-    @classmethod
-    def from_cache(cls, doc_key: str):
-        # TODO: load sheet from db cache
-        pass
 
     @property
     def id(self):

@@ -1,21 +1,18 @@
 from gspread import Cell
 from typing import List
 
+from .cell_container import CellContainer
 
-# TODO: Add method that serializes List of Cells, make Player and DaySchedule extend a new class CellContainer or smth
-class Player:
+
+class Player(CellContainer):
     def __init__(self, name: str, role: str, availability: List[Cell]):
+        super().__init__(availability)
         self.name = name
         self.role = role
-        self._availability = availability
 
     @property
     def availability(self) -> List[str]:
-        return [cell.value for cell in self._availability]
-
-    @property
-    def cells(self) -> List[Cell]:
-        return self._availability
+        return [cell.value for cell in self.cells]
 
     def get_availability_for_day(self, day: int):
         start = day * 6
@@ -30,8 +27,14 @@ class Player:
     def __str__(self):
         return f"Name: {self.name} \nRole: {self.role} \nAvailability: {self.availability}"
 
+    def as_dict(self):
+        return {"name": self.name, "role": self.role, "availability": self.cells_dict()}
+
 
 class Players:
     def __init__(self, sorted_list: dict, unsorted_list: list):
         self.sorted_list = sorted_list
         self.unsorted_list = unsorted_list
+
+    def as_dict(self):
+        return {'unsorted_list': [player.as_dict() for player in self.unsorted_list]}

@@ -2,21 +2,19 @@ import datetime
 from typing import List
 from gspread import Cell
 
+from .cell_container import CellContainer
 
-class DaySchedule:
+
+class DaySchedule(CellContainer):
     def __init__(self, name: str, date: str, activities: List[Cell], notes: List[str]):
+        super().__init__(activities)
         self.name = name
         self.date = date
-        self._activities = activities
         self.notes = notes
 
     @property
     def activities(self) -> List[str]:
-        return [cell.value for cell in self._activities]
-
-    @property
-    def cells(self) -> List[Cell]:
-        return self._activities
+        return [cell.value for cell in self.cells]
 
     def get_activity_at_time(self, time, start_time=4):
         offset = int(time) - start_time
@@ -55,6 +53,9 @@ class DaySchedule:
     def __str__(self):
         return f"{self.name}, {self.date}"
 
+    def as_dict(self):
+        return {"name": self.name, "date": self.date, "notes": self.notes, "activities": self.cells_dict()}
+
 
 class WeekSchedule:
     def __init__(self, days):
@@ -81,3 +82,6 @@ class WeekSchedule:
         for day in self:
             week_string += str(day) + "\n"
         return week_string
+
+    def as_dict(self):
+        return {'days': [day.as_dict() for day in self]}

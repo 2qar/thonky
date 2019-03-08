@@ -1,9 +1,12 @@
 from typing import Any, List
+from gspread import Cell
 import psycopg2
 import json
 from datetime import datetime
 
 from .helpers import strip_microseconds
+from .players import Player, Players
+from .schedules import DaySchedule, WeekSchedule
 
 
 def dictify(data, fields):
@@ -148,9 +151,32 @@ class DBHandler:
     def add_player_data(self, server_id: int, name: str, date: str, availability: dict):
         self._add('player_data', server_id, {'name': name, 'date': date, 'availability': availability})
 
+    def get_sheet_cache(self, server_id: int, team_name: str):
+        cache = self._search('cache', 'team_name', team_name, extra_query=server_id_check(server_id))
+        if cache:
+            last_saved = cache['last_saved']
+
+            def load_cells(cells_json):
+                return [Cell(cell['row'], cell['col'], value=cell['value']) for cell in cells_json]
+
+            player_cache = cache['players']['unsorted_list']
+            player_list = [Player(player['name'], player['role'], load_cells(player['availability']))
+                           for player in player_cache]
+            sorted_list = {}
+            for player in player_list:
+                sorted_list[player.role].append(player)
+            players = Players(sorted_list, player_list)
+
+            week_cache = cache['week_schedule']['days']
+            day_list = [DaySchedule(day['name'], day['date'], day['activities'], day['notes']) for day in week_cache]
+            week = WeekSchedule(day_list)
+            return {'players': {'last_saved': last_saved, 'cache': players},
+                    'week_schedule': {'last_saved': last_saved, 'cache': week}}
+
     def update_sheet_cache(self, server_id: int, team_name: str, key: str, value: dict):
         last_saved = strip_microseconds(datetime.now()).isoformat()
         id_check = server_id_check(server_id)
+        # FIXME: _search doesn't work because get_check doesn't check for IS NULL on team_name
         if not self._search('cache', 'team_name', team_name, extra_query=id_check):
             self._add('cache', server_id, {key: value, 'last_saved': last_saved})
         else:
