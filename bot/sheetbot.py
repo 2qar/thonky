@@ -30,6 +30,28 @@ def check_cache(func):
             return await func(*args)
     return wrapper
 
+def parse_sheet_cache(cache: dict) -> dict:
+    last_saved = cache['last_saved']
+
+    def load_cells(cells_json):
+        return [Cell(cell['row'], cell['col'], value=cell['value']) for cell in cells_json]
+
+    # TODO: Push sorted list to db instead so roles in sorted_list aren't assumed, make unsorted_list from sorted_list
+    player_cache = cache['players']['unsorted_list']
+    player_list = [Player(player['name'], player['role'], load_cells(player['availability']))
+                   for player in player_cache]
+    sorted_list = {'Tanks': [], 'DPS': [], 'Supports': [], 'Flex': []}
+    for player in player_list:
+        sorted_list[player.role].append(player)
+    players = Players(sorted_list, player_list)
+
+    week_cache = cache['week_schedule']['days']
+    day_list = [DaySchedule(day['name'], day['date'], day['activities'], day['notes']) for day in week_cache]
+    week = WeekSchedule(day_list)
+    return {'players': {'last_saved': last_saved, 'cache': players},
+            'week_schedule': {'last_saved': last_saved, 'cache': week}}
+
+
 
 class SheetHandler(AsyncioGspreadClientManager):
     """ Used for snatching some useful information from a sheet using a given doc key """
@@ -59,6 +81,8 @@ class SheetHandler(AsyncioGspreadClientManager):
 
         with DBHandler() as handler:
             cache = handler.get_sheet_cache(info.guild_id, team_name)
+        if cache:
+            cache = parse_sheet_cache(cache)
         return Sheet(self, await self.gc.open_by_key(info.config['doc_key']), info.guild_id, team_name, cache)
 
 

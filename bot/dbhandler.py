@@ -17,11 +17,6 @@ def dictify(data, fields):
     return formatted_data
 
 
-def get_check(field_name: str, case_sensitive):
-    """ Wrap the check in LOWER() if case_sensitive """
-    return f"WHERE {field_name} = %s" if case_sensitive else f"WHERE LOWER({field_name}) = LOWER(%s)"
-
-
 def server_id_check(guild_id: int) -> str:
     return f"AND server_id = '{guild_id}'"
 
@@ -47,6 +42,19 @@ class DBHandler:
             del(template_config[key])
         return template_config
 
+    def _str_mogrify(self, query, values):
+        return self.cursor.mogrify(query, values).decode("utf-8")
+
+    def _get_check(self, field_name: str, value: Any, case_sensitive):
+        """ Wrap the check in LOWER() if case_sensitive """
+
+        if not value:
+            return f"WHERE {field_name} IS NULL"
+        elif not case_sensitive:
+            return self._str_mogrify(f"WHERE LOWER({field_name}) = LOWER(%s)", (value,))
+        else:
+            return self._str_mogrify(f"WHERE {field_name} = %s", (value,))
+
     def _search(self, table_name: str, field_name: str, value: Any, case_sensitive=True, extra_query='',
                 all_results=False) -> dict or None:
         """ Get row(s) from a table where a given field matches a given value.
@@ -54,11 +62,11 @@ class DBHandler:
             :param str extra_query: extra checks for searching
         """
 
-        check = get_check(field_name, case_sensitive)
+        check = self._get_check(field_name, value, case_sensitive)
         self.cursor.execute(f"""
                 SELECT * FROM {table_name}
                 {check} {extra_query}
-                """, (value,))
+                """)
         results = self._format_sql_data(table_name)
         if results:
             if all_results:
@@ -71,21 +79,22 @@ class DBHandler:
                      extra_query=''):
         """ Update row(s) from a table where a given field matches a given value. """
 
-        check = get_check(check_field, case_sensitive)
+        check = self._get_check(check_field, check_value, case_sensitive)
 
-        update_fields = []
-        update_values = []
+        update_queries = []
         for key in updates:
-            update_fields.append(key)
-            update_values.append(updates[key])
+            value = updates[key]
+            if isinstance(value, dict):
+               value = str(value).replace("'", '"')
+            update_queries.append(self._str_mogrify(key, (value,)))
 
-        update_string = ' AND '.join(update_fields)
-        update_values.append(check_value)
+        # FIXME: update_string is just field names joined by AND instead of queries
+        update_string = ' AND '.join(update_queries)
         self.cursor.execute(f"""
                 UPDATE {table_name}
-                {update_string}
+                SET {update_string}
                 {check} {extra_query}
-                """, update_values)
+                """)
         self.conn.commit()
 
     def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
@@ -152,31 +161,11 @@ class DBHandler:
         self._add('player_data', server_id, {'name': name, 'date': date, 'availability': availability})
 
     def get_sheet_cache(self, server_id: int, team_name: str):
-        cache = self._search('cache', 'team_name', team_name, extra_query=server_id_check(server_id))
-        if cache:
-            last_saved = cache['last_saved']
-
-            def load_cells(cells_json):
-                return [Cell(cell['row'], cell['col'], value=cell['value']) for cell in cells_json]
-
-            player_cache = cache['players']['unsorted_list']
-            player_list = [Player(player['name'], player['role'], load_cells(player['availability']))
-                           for player in player_cache]
-            sorted_list = {}
-            for player in player_list:
-                sorted_list[player.role].append(player)
-            players = Players(sorted_list, player_list)
-
-            week_cache = cache['week_schedule']['days']
-            day_list = [DaySchedule(day['name'], day['date'], day['activities'], day['notes']) for day in week_cache]
-            week = WeekSchedule(day_list)
-            return {'players': {'last_saved': last_saved, 'cache': players},
-                    'week_schedule': {'last_saved': last_saved, 'cache': week}}
+        return self._search('cache', 'team_name', team_name, extra_query=server_id_check(server_id))
 
     def update_sheet_cache(self, server_id: int, team_name: str, key: str, value: dict):
         last_saved = strip_microseconds(datetime.now()).isoformat()
         id_check = server_id_check(server_id)
-        # FIXME: _search doesn't work because get_check doesn't check for IS NULL on team_name
         if not self._search('cache', 'team_name', team_name, extra_query=id_check):
             self._add('cache', server_id, {key: value, 'last_saved': last_saved})
         else:
