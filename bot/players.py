@@ -37,4 +37,7 @@ class Players:
         self.unsorted_list = unsorted_list
 
     def as_dict(self):
-        return {'unsorted_list': [player.as_dict() for player in self.unsorted_list]}
+        sorted_list = {}
+        for key in self.sorted_list:
+            sorted_list[key] = [player.as_dict() for player in self.sorted_list[key]]
+        return {'sorted_list': sorted_list}

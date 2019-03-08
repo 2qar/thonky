@@ -30,27 +30,27 @@ def check_cache(func):
             return await func(*args)
     return wrapper
 
+
 def parse_sheet_cache(cache: dict) -> dict:
     last_saved = cache['last_saved']
 
     def load_cells(cells_json):
         return [Cell(cell['row'], cell['col'], value=cell['value']) for cell in cells_json]
 
-    # TODO: Push sorted list to db instead so roles in sorted_list aren't assumed, make unsorted_list from sorted_list
-    player_cache = cache['players']['unsorted_list']
-    player_list = [Player(player['name'], player['role'], load_cells(player['availability']))
-                   for player in player_cache]
-    sorted_list = {'Tanks': [], 'DPS': [], 'Supports': [], 'Flex': []}
-    for player in player_list:
-        sorted_list[player.role].append(player)
-    players = Players(sorted_list, player_list)
+    sorted_list = cache['players']['sorted_list']
+    unsorted_list = []
+    for role in sorted_list:
+        for i, player in enumerate(sorted_list[role]):
+            player_obj = Player(player['name'], player['role'], load_cells(player['availability']))
+            unsorted_list.append(player_obj)
+            sorted_list[role][i] = player_obj
+    players = Players(sorted_list, unsorted_list)
 
     week_cache = cache['week_schedule']['days']
     day_list = [DaySchedule(day['name'], day['date'], day['activities'], day['notes']) for day in week_cache]
     week = WeekSchedule(day_list)
     return {'players': {'last_saved': last_saved, 'cache': players},
             'week_schedule': {'last_saved': last_saved, 'cache': week}}
-
 
 
 class SheetHandler(AsyncioGspreadClientManager):
