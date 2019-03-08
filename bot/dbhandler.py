@@ -85,11 +85,12 @@ class DBHandler:
         for key in updates:
             value = updates[key]
             if isinstance(value, dict):
-               value = str(value).replace("'", '"')
-            update_queries.append(self._str_mogrify(key, (value,)))
+                value = str(value).replace("'", '"')
+                update_queries.append(f"{key} = '{value}'")
+            else:
+                update_queries.append(self._str_mogrify(f"{key} = %s", (value,)))
 
-        # FIXME: update_string is just field names joined by AND instead of queries
-        update_string = ' AND '.join(update_queries)
+        update_string = ', '.join(update_queries)
         self.cursor.execute(f"""
                 UPDATE {table_name}
                 SET {update_string}

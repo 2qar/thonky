@@ -47,7 +47,7 @@ def parse_sheet_cache(cache: dict) -> dict:
     players = Players(sorted_list, unsorted_list)
 
     week_cache = cache['week_schedule']['days']
-    day_list = [DaySchedule(day['name'], day['date'], day['activities'], day['notes']) for day in week_cache]
+    day_list = [DaySchedule(day['name'], day['date'], load_cells(day['activities']), day['notes']) for day in week_cache]
     week = WeekSchedule(day_list)
     return {'players': {'last_saved': last_saved, 'cache': players},
             'week_schedule': {'last_saved': last_saved, 'cache': week}}
@@ -77,7 +77,8 @@ class SheetHandler(AsyncioGspreadClientManager):
 
     async def get_sheet(self, info):
         await self.init()
-        team_name = info.team_name if hasattr(info, 'team_name') else ''
+        # FIXME: this isn't working even on TeamInfo, so team_name is always an empty string
+        team_name = getattr(info, 'team_name', '')
 
         with DBHandler() as handler:
             cache = handler.get_sheet_cache(info.guild_id, team_name)
