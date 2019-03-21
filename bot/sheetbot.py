@@ -1,4 +1,5 @@
 from gspread_asyncio import AsyncioGspreadClientManager, AsyncioGspreadClient, Cell, AsyncioGspreadSpreadsheet
+from gspread.exceptions import WorksheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 from dateutil.parser import parse
@@ -111,7 +112,11 @@ class Sheet:
                     sorted_players[role] = []
                 name = vals[2]
 
-                player_doc = await self._sheet.worksheet(name)
+                try:
+                    player_doc = await self._sheet.worksheet(name)
+                except WorksheetNotFound:
+                    player_doc = None
+
                 if player_doc:
                     available_times: List[Cell] = await player_doc.range('C3:H9')
                     for i, response in enumerate(available_times):
