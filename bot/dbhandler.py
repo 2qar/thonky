@@ -48,9 +48,7 @@ class DBHandler:
     def _get_check(self, field_name: str, value: Any, case_sensitive):
         """ Wrap the check in LOWER() if case_sensitive """
 
-        if not value:
-            return f"WHERE {field_name} IS NULL"
-        elif not case_sensitive:
+        if not case_sensitive:
             return self._str_mogrify(f"WHERE LOWER({field_name}) = LOWER(%s)", (value,))
         else:
             return self._str_mogrify(f"WHERE {field_name} = %s", (value,))
@@ -91,11 +89,8 @@ class DBHandler:
                 update_queries.append(self._str_mogrify(f"{key} = %s", (value,)))
 
         update_string = ', '.join(update_queries)
-        self.cursor.execute(f"""
-                UPDATE {table_name}
-                SET {update_string}
-                {check} {extra_query}
-                """)
+        query = f"UPDATE {table_name} SET {update_string} {check} {extra_query}"
+        self.cursor.execute(query)
         self.conn.commit()
 
     def _update(self, table_name: str, check_field: str, check_value: Any, update_field: str, update_value: Any,
@@ -124,7 +119,8 @@ class DBHandler:
 
         value_blanks = parenthesise(['%s' for key in values])
 
-        self.cursor.execute(f"INSERT INTO {table_name} {formatted_fields} VALUES {value_blanks}", tuple_values)
+        query = f"INSERT INTO {table_name} {formatted_fields} VALUES {value_blanks}"
+        self.cursor.execute(query, tuple_values)
         self.conn.commit()
 
     def get_server_config(self, server_id: int):
@@ -168,7 +164,7 @@ class DBHandler:
         last_saved = strip_microseconds(datetime.now()).isoformat()
         id_check = server_id_check(server_id)
         if not self._search('cache', 'team_name', team_name, extra_query=id_check):
-            self._add('cache', server_id, {key: value, 'last_saved': last_saved})
+            self._add('cache', server_id, {'team_name': team_name, key: value, 'last_saved': last_saved})
         else:
             self._update_many('cache', 'team_name', team_name, {key: value, 'last_saved': last_saved},
                               extra_query=id_check)

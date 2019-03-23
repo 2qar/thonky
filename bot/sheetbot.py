@@ -24,7 +24,7 @@ def check_cache(func):
     async def wrapper(*args):
         self: Sheet = args[0]
         item = '_'.join(func.__name__.split('_')[1:]) # remove 'get' from func name
-        if self._cache[item]['last_saved'] < self._last_modified:
+        if self._cache[item]['last_saved'] > self._last_modified:
             return self._cache[item]['cache']
         else:
             return await func(*args)
