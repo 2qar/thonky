@@ -1,6 +1,7 @@
 from aiohttp import ClientSession
 from pybuff import get_player, BadBattletag
 from typing import Dict, List
+from re import match
 
 
 class LinkNotFound(Exception):
@@ -35,9 +36,8 @@ async def get_player_info(active_ids: List[str], player_json: dict, session: Cli
     return player_info
 
 
-async def get_team_info(match: Dict, session: ClientSession) -> dict or str:
+async def get_team_info(team: Dict, session: ClientSession) -> dict or str:
     team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-    team = match[match['pos']]
     curr_link = team_link + get_team_id(team)
     async with session.get(curr_link) as request:
         if request.status == 200:
@@ -147,9 +147,23 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dic
     match_link = match_link_base.format(match['stageID'], match['_id'])
     
     # get the info about the team
-    team_info = await get_team_info(match, session)
+    team_info = await get_team_info(match[match['pos']], session)
 
     await session.close()
 
     team_info['match_link'] = match_link
     return team_info
+
+async def find_team(tournament_link: str, name: str) -> List[Dict]:
+    stripped_link = match("https://battlefy.com/[\w\d-]{1,}/[\w\d-]{1,}/[\d\w]{24}", tournament_link).group(0)
+    tournament_id = stripped_link[stripped_link.rfind("/") + 1:]
+
+    search_link = f"https://dtmwra1jsgyb0.cloudfront.net/tournaments/{tournament_id}/teams?name={name}"
+    async with ClientSession() as session:
+        async with session.get(search_link) as request:
+            if request.status == 200:
+                teams = await request.json()
+            else:
+                teams = []
+
+    return teams
