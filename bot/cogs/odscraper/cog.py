@@ -1,7 +1,7 @@
 from discord.ext import commands
 from discord import Embed, Colour
 
-from .scraper import get_other_team_info
+from .scraper import get_other_team_info, find_team
 from ...dbhandler import DBHandler
 from ...formatter import role_emotes
 
@@ -104,6 +104,23 @@ class ODScraper:
     @commands.command(pass_context=True)
     async def od(self, ctx, od_round):
         await ODScraper.send_od(self.bot.get_info(ctx), ctx, od_round)
+
+    @commands.command(pass_context=True)
+    async def team(self, ctx, name):
+        info = self.bot.get_info(ctx)
+        tournament_link = info.config['tournament_link']
+        if not tournament_link:
+            await ctx.send("No tournament link set.")
+            return
+
+        teams = await find_team(tournament_link, name)
+        if not teams:
+            await ctx.send("No results. :(")
+            return
+
+        team_names = '\n'.join([team['name'] for team in teams])
+        formatted_teams = f"```\n{team_names}\n```"
+        await ctx.send(formatted_teams)
 
 
 def setup(bot):
