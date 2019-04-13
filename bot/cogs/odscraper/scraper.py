@@ -120,11 +120,11 @@ async def get_match(stage_id: str, od_round: str, team_id: str, session: ClientS
             return match_json
 
 
-async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dict or None:
+async def get_other_team_info(tournament_link: str, od_round: str, team_id: str) -> Dict or None:
     """
     Get information on the team we're matched up against in the given round (od_round)
 
-    :param str stage_id: stage id from the tournament link
+    :param str tournament_link: link to the tournament :)
     :param str od_round: The round to get the match from, can be a num 1-10
     :param str team_id: The ID of the team on battlefy that we're grabbing a match for
     :return: a dict with information about the enemy team
@@ -132,16 +132,13 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dic
 
     session = ClientSession()
 
-    # TODO: Save tournament URL in !set_tourney and pass it here because this URL is wrong lmao
-    match_link_base = 'https://battlefy.com/overwatch-open-division-north-america/2018-overwatch-open-division-season' \
-                      '-3-north-america/5b5e98399a8f8503cd0a07fd/stage/{}/match/{} '
+    stage_id = tournament_link[tournament_link.rfind("/") + 1:]
 
     # get the match link
     match = await get_match(stage_id, od_round, team_id, session)
     if not match:
         await session.close()
         return
-    match_link = match_link_base.format(match['stageID'], match['_id'])
 
     # get the ids of players on the active roster
     team = match[match['pos']]
@@ -153,11 +150,13 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dic
 
     await session.close()
 
-    team_info['match_link'] = match_link
+    team_info['match_link'] = f"{tournament_link}/match/{match['_id']}"
     return team_info
 
 
 async def find_team(tournament_link: str, name: str) -> List[Dict]:
+    """ Search through participants of a tournament for a team, return the teams found """
+
     stripped_link = match("https://battlefy.com/[\w\d-]{1,}/[\w\d-]{1,}/[\d\w]{24}", tournament_link).group(0)
     tournament_id = stripped_link[stripped_link.rfind("/") + 1:]
 

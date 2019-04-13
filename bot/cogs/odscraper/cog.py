@@ -87,19 +87,19 @@ class ODScraper:
             return
 
         config = info.config
-        stage_id = config['stage_id']
+        tournament_link = config['tournament_link']
         team_id = config['team_id']
 
-        if not stage_id and not team_id:
+        if not tournament_link and not team_id:
             await ctx.send("No tournament or team set. :(")
-        elif not stage_id:
+        elif not tournament_link:
             await ctx.send("No tournament set. :(")
         elif not team_id:
             await ctx.send("No team set. :(")
         else:
             message = await ctx.send("Getting match info...")
 
-            enemy_info = await get_other_team_info(stage_id, od_round, team_id)
+            enemy_info = await get_other_team_info(tournament_link, od_round, team_id)
             if enemy_info:
                 embed = ODScraper.format_other_team_info(od_round, enemy_info)
                 await message.edit(content=None, embed=embed)
