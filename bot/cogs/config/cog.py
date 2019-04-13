@@ -192,8 +192,7 @@ class Config:
             await ctx.send("Invalid tournament url.")
         else:
             url = match.group(0)
-            stage_id = get_last_link_element(url)
-            self.write_property(ctx, 'stage_id', stage_id)
+            self.write_property(ctx, 'tournament_link', url)
             await ctx.send("Tournament set. :)")
 
     @command(pass_context=True)
