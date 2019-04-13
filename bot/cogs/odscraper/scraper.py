@@ -36,10 +36,9 @@ async def get_player_info(active_ids: List[str], player_json: dict, session: Cli
     return player_info
 
 
-async def get_team_info(team: Dict, session: ClientSession) -> dict or str:
-    team_link = 'https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/'
-    curr_link = team_link + get_team_id(team)
-    async with session.get(curr_link) as request:
+async def get_team_info(active_ids: List[str], team_id: str, session: ClientSession) -> dict or str:
+    team_link = f"https://dtmwra1jsgyb0.cloudfront.net/persistent-teams/{team_id}"
+    async with session.get(team_link) as request:
         if request.status == 200:
             data = await request.json()
         elif request.status == 404:
@@ -53,8 +52,6 @@ async def get_team_info(team: Dict, session: ClientSession) -> dict or str:
         'name': data['name'],
         'logo': data['logoUrl']
     }
-    team = team['team']
-    active_ids = [list(filter(lambda x: x['_id'] == _id, team['players']))[0]['persistentPlayerID'] for _id in team['playerIDs']]
 
     players = [await get_player_info(active_ids, player, session) for player in data['persistentPlayers']]
     players.insert(0, await get_player_info(active_ids, data['owner'], session, owner=True))
@@ -145,14 +142,20 @@ async def get_other_team_info(stage_id: str, od_round: str, team_id: str) -> Dic
         await session.close()
         return
     match_link = match_link_base.format(match['stageID'], match['_id'])
-    
-    # get the info about the team
-    team_info = await get_team_info(match[match['pos']], session)
+
+    # get the ids of players on the active roster
+    team = match[match['pos']]
+    team_id = get_team_id(team)
+    team = team['team']
+    active_ids = [list(filter(lambda x: x['_id'] == _id, team['players']))[0]['persistentPlayerID'] for _id in team['playerIDs']]
+
+    team_info = await get_team_info(active_ids, team_id, session)
 
     await session.close()
 
     team_info['match_link'] = match_link
     return team_info
+
 
 async def find_team(tournament_link: str, name: str) -> List[Dict]:
     stripped_link = match("https://battlefy.com/[\w\d-]{1,}/[\w\d-]{1,}/[\d\w]{24}", tournament_link).group(0)
