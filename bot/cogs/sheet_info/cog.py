@@ -287,6 +287,9 @@ class SheetInfo:
 
             Giving one response for multiple cells will set the value of each cell to that response:
                 !set monday 4-10 free
+
+            Giving one activity will set the whole day to that activity:
+                !set monday free
         """
 
         split = args.split()
@@ -371,6 +374,8 @@ class SheetInfo:
                     return [valid_activities[i]]
                 except ValueError:
                     await ctx.send(f"Invalid activity \"{given_values[0]}\"")
+                except IndexError:
+                    return []
 
         async def parse_availability(given_values: typing.List[str]):
             valid_availability = ['Yes', 'Maybe', 'No']
@@ -392,9 +397,25 @@ class SheetInfo:
                     return [valid_availability[i]]
                 except ValueError:
                     await ctx.send(f"Invalid response \"{given_values[0]}\"")
+                except IndexError:
+                    return []
 
         async def update_cells(sheet_name: str, cell_container, value_parser, value_start_index: int, offset=-1):
+            async def update(cells, parsed_values):
+                try:
+                    log = await info.sheet.update_cells(sheet_name, cells, parsed_values)
+                    await ctx.send(f"Changed {log[0]} to {log[1]}")
+                except IndexError:
+                    await ctx.send("Weird amount of values given for the range given.")
+                except APIError as e:
+                    error = e.response.json()['error']
+                    if error['code'] == 400:
+                        if error['message'].startswith('You are trying to edit a protected cell or object.'):
+                            await ctx.send(f"The sheet \"{sheet_name}\" is protected. "
+                                           "I need edit permission :(")
+
             cell_range = get_range(split[value_start_index + 1], offset)
+            parsed_values = await value_parser(split[value_start_index + 2::])
             if cell_range is not None:
                 range_start = cell_range[0]
                 range_end = cell_range[1]
@@ -402,21 +423,16 @@ class SheetInfo:
                     cells = [cell_container.cells[range_start]]
                 else:
                     cells = cell_container.cells[range_start:range_end]
-                parsed_values = await value_parser(split[value_start_index + 2::])
                 if parsed_values:
-                    try:
-                        log = await info.sheet.update_cells(sheet_name, cells, parsed_values)
-                        await ctx.send(f"Changed {log[0]} to {log[1]}")
-                    except IndexError:
-                        await ctx.send("Weird amount of values given for the range given.")
-                    except APIError as e:
-                        error = e.response.json()['error']
-                        if error['code'] == 400:
-                            if error['message'].startswith('You are trying to edit a protected cell or object.'):
-                                await ctx.send(f"The sheet \"{sheet_name}\" is protected. "
-                                               "I need edit permission :(")
+                    await update(cells, parsed_values)
             else:
-                await ctx.send(f"Invalid time range \"{split[value_start_index + 1]}\"")
+                parsed_values = await value_parser(split[value_start_index + 1::])
+                if len(parsed_values) == 1:
+                    await update(cell_container.cells, parsed_values)
+                elif len(parsed_values) > 1:
+                    await ctx.send("Too many activities without time range.")
+                else:
+                    await ctx.send(f"Invalid time range \"{split[value_start_index + 1]}\"")
 
         arg_count = len(args)
         if arg_count >= 3:
